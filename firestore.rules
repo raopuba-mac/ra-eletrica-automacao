@@ -1,0 +1,340 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isVerifiedOwner(uid) {
+      return isOwner(uid) && request.auth.token.email_verified == true;
+    }
+
+    function isScheduler() {
+      return isSignedIn() && request.auth.token.email == "scheduler@ra-eletrica.com";
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      function isValidUser(data) {
+        let hasCore = data.keys().hasAll(['email', 'createdAt', 'updatedAt']);
+        let hasMaxKeys = data.size() <= 15;
+        let isTypes = data.email is string && data.email.size() <= 200
+          && data.createdAt is number
+          && data.updatedAt is number;
+        let pName = !('name' in data) || (data.name is string && data.name.size() <= 100);
+        let pCompany = !('companyName' in data) || (data.companyName is string && data.companyName.size() <= 200);
+        let pPhone = !('phone' in data) || (data.phone is string && data.phone.size() <= 50);
+        let pWhatsApp = !('whatsappInfo' in data) || (data.whatsappInfo is string && data.whatsappInfo.size() <= 50);
+        let pSlug = !('websiteSlug' in data) || (data.websiteSlug is string && data.websiteSlug.size() <= 100 && (data.websiteSlug == '' || data.websiteSlug.matches('^[a-z0-9\\-]+$')));
+        let pBio = !('bio' in data) || (data.bio is string && data.bio.size() <= 5000);
+        return hasCore && hasMaxKeys && isTypes && pName && pCompany && pPhone && pWhatsApp && pSlug && pBio;
+      }
+      
+      allow read: if true; // Profiles are public
+      allow list: if isSignedIn();
+      
+      allow create: if isOwner(userId) 
+        && isValidUser(incoming())
+        && request.auth.token.email_verified == true
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+        
+      allow update: if isOwner(userId) 
+        && isValidUser(incoming())
+        && request.auth.token.email_verified == true
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'companyName', 'phone', 'whatsappInfo', 'websiteSlug', 'bio', 'updatedAt']);
+    }
+
+    match /clients/{clientId} {
+      function isValidClient(data) {
+        let hasCore = data.keys().hasAll(['userId', 'name', 'createdAt', 'updatedAt']);
+        let hasMaxKeys = data.size() <= 12;
+        let isTypes = data.userId is string && data.userId.size() <= 128
+          && data.name is string && data.name.size() <= 150
+          && data.createdAt is number
+          && data.updatedAt is number;
+        let pPhone = !('phone' in data) || (data.phone is string && data.phone.size() <= 50);
+        let pEmail = !('email' in data) || (data.email is string && data.email.size() <= 150);
+        let pAddress = !('address' in data) || (data.address is string && data.address.size() <= 255);
+        let pNotes = !('notes' in data) || (data.notes is string && data.notes.size() <= 1000);
+        return hasCore && hasMaxKeys && isTypes && pPhone && pEmail && pAddress && pNotes;
+      }
+
+      allow read: if isValidId(clientId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isValidId(clientId) && isOwner(incoming().userId)
+        && isValidClient(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+        
+      allow update: if isValidId(clientId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
+        && isValidClient(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'email', 'address', 'notes', 'updatedAt']);
+        
+      allow delete: if isValidId(clientId) && isOwner(existing().userId);
+    }
+
+    match /quotes/{quoteId} {
+      function isValidQuote(data) {
+         let hasCore = data.keys().hasAll(['userId', 'clientId', 'status', 'createdAt', 'updatedAt']);
+         let hasMaxKeys = data.size() <= 12;
+         let isTypes = data.userId == request.auth.uid
+          && data.clientId is string && data.clientId.size() <= 128
+          && data.status is string && data.status in ['pending', 'approved', 'rejected']
+          && data.createdAt is number
+          && data.updatedAt is number;
+         let pClientName = !('clientName' in data) || (data.clientName is string && data.clientName.size() <= 150);
+         let pDesc = !('description' in data) || (data.description is string && data.description.size() <= 1048400);
+         let pTotal = !('totalAmount' in data) || (data.totalAmount is number);
+         return hasCore && hasMaxKeys && isTypes && pClientName && pDesc && pTotal;
+      }
+
+      allow read: if isValidId(quoteId) && isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isValidId(quoteId) && isOwner(incoming().userId)
+        && isValidQuote(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+        
+      allow update: if isValidId(quoteId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
+        && isValidQuote(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description', 'totalAmount', 'clientName', 'updatedAt']);
+        
+      allow delete: if isValidId(quoteId) && isOwner(existing().userId);
+    }
+
+    match /serviceOrders/{orderId} {
+      function isValidOrder(data) {
+         let hasCore = data.keys().hasAll(['userId', 'clientId', 'status', 'createdAt', 'updatedAt']);
+         let hasMaxKeys = data.size() <= 20;
+         let isTypes = data.userId == request.auth.uid
+          && data.clientId is string && data.clientId.size() <= 128
+          && data.status is string && data.status in ['scheduled', 'in_progress', 'completed', 'cancelled']
+          && data.createdAt is number
+          && data.updatedAt is number;
+         let pQuoteId = !('quoteId' in data) || (data.quoteId is string && data.quoteId.size() <= 128);
+         let pDesc = !('description' in data) || (data.description is string && data.description.size() <= 10000);
+         let pSched = !('scheduledDate' in data) || (data.scheduledDate is string && data.scheduledDate.size() <= 100);
+         let pSchedTime = !('scheduledTime' in data) || (data.scheduledTime is string && data.scheduledTime.size() <= 50);
+         let pPrice = !('finalPrice' in data) || (data.finalPrice is string && data.finalPrice.size() <= 50);
+         let pPhotos = !('photos' in data) || (data.photos is list && data.photos.size() <= 50);
+         let pPhotosAfter = !('photosAfter' in data) || (data.photosAfter is list && data.photosAfter.size() <= 50);
+         return hasCore && hasMaxKeys && isTypes && pQuoteId && pDesc && pSched && pSchedTime && pPrice && pPhotos && pPhotosAfter;
+      }
+
+      allow read: if isValidId(orderId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isValidId(orderId) && isOwner(incoming().userId)
+        && isValidOrder(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+        
+      allow update: if (isValidId(orderId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
+        && isValidOrder(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['clientId', 'status', 'description', 'scheduledDate', 'scheduledTime', 'finalPrice', 'photos', 'photosAfter', 'updatedAt']))
+        || (isValidId(orderId)
+        && incoming().userId == existing().userId
+        && incoming().clientId == existing().clientId
+        && incoming().status == existing().status
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['clientSignatureName', 'clientSignatureDoc', 'signedAt', 'updatedAt']));
+        
+      allow delete: if isValidId(orderId) && isOwner(existing().userId);
+    }
+
+    match /agenda/{eventId} {
+      function isValidEvent(data) {
+        let hasCore = data.keys().hasAll(['userId', 'title', 'date', 'type', 'createdAt', 'updatedAt']);
+        let hasMaxKeys = data.size() <= 12;
+        let isTypes = data.userId is string && data.userId.size() <= 128
+          && data.title is string && data.title.size() <= 200
+          && data.date is number
+          && data.type is string && data.type in ['service', 'visit', 'reminder']
+          && data.createdAt is number
+          && data.updatedAt is number;
+        let pDesc = !('description' in data) || (data.description is string && data.description.size() <= 2000);
+        let pRecurrence = !('recurrence' in data) || (data.recurrence is string && data.recurrence.size() <= 50 && data.recurrence in ['none', 'daily', 'weekly', 'monthly']);
+        let pNotify = !('notifyTime' in data) || (data.notifyTime is string && data.notifyTime.size() <= 50 && data.notifyTime in ['none', 'at_event', '15_min', '1_hour', '24_hours']);
+        return hasCore && hasMaxKeys && isTypes && pDesc && pRecurrence && pNotify;
+      }
+
+      allow read: if isScheduler() || (isValidId(eventId) && isOwner(existing().userId));
+      allow list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      
+      allow create: if isValidId(eventId) && isOwner(incoming().userId)
+        && isValidEvent(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+        
+      allow update: if (isValidId(eventId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
+        && isValidEvent(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'date', 'type', 'recurrence', 'notifyTime', 'updatedAt']))
+        || (isScheduler() && incoming().diff(existing()).affectedKeys().hasOnly(['notified']));
+        
+      allow delete: if isValidId(eventId) && isOwner(existing().userId);
+    }
+
+    match /push_subscriptions/{subId} {
+      function isValidSubscription(data) {
+        let hasCore = data.keys().hasAll(['userId', 'subscription', 'expired', 'createdAt']);
+        let hasMaxKeys = data.size() <= 5;
+        let isTypes = data.userId is string && data.userId.size() <= 128
+          && data.subscription is map
+          && data.expired is bool
+          && data.createdAt is number;
+        return hasCore && hasMaxKeys && isTypes;
+      }
+
+      allow read: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isScheduler() || (isSignedIn() && isOwner(incoming().userId) && isValidSubscription(incoming()));
+      allow update: if isScheduler() || (isSignedIn() && isOwner(existing().userId) && isOwner(incoming().userId) && isValidSubscription(incoming()));
+      allow delete: if isScheduler() || (isSignedIn() && isOwner(existing().userId));
+    }
+
+    match /portfolio/{itemId} {
+      function isValidPortfolio(data) {
+        let hasCore = data.keys().hasAll(['userId', 'title', 'isPublic', 'createdAt', 'updatedAt']);
+        let hasMaxKeys = data.size() <= 15;
+        let isTypes = data.userId is string && data.userId.size() <= 128
+          && data.title is string && data.title.size() <= 200
+          && data.isPublic is bool
+          && data.createdAt is number
+          && data.updatedAt is number;
+        let pDesc = !('description' in data) || (data.description is string && data.description.size() <= 5000);
+        let pCat = !('category' in data) || (data.category is string && data.category.size() <= 100);
+        let pPhoto = !('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1048400); 
+        let pMedia = !('mediaUrls' in data) || (data.mediaUrls is list && data.mediaUrls.size() <= 50 && (data.mediaUrls.size() == 0 || (data.mediaUrls.size() > 0 && data.mediaUrls[0] is string)));
+        return hasCore && hasMaxKeys && isTypes && pDesc && pCat && pPhoto && pMedia;
+      }
+
+      allow read: if isValidId(itemId); 
+      allow list: if true; 
+      
+      allow create: if isValidId(itemId) && isOwner(incoming().userId)
+        && isValidPortfolio(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+        
+      allow update: if isValidId(itemId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
+        && isValidPortfolio(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'photoUrl', 'mediaUrls', 'isPublic', 'updatedAt']);
+        
+      allow delete: if isValidId(itemId) && isOwner(existing().userId);
+    }
+
+    match /leads/{leadId} {
+      function isValidLead(data) {
+        let hasCore = data.keys().hasAll(['name', 'phone', 'status', 'createdAt', 'updatedAt']);
+        let hasMaxKeys = data.size() <= 15;
+        let isTypes = data.name is string && data.name.size() <= 150
+          && data.phone is string && data.phone.size() <= 50
+          && data.status is string && data.status in ['new', 'contacted', 'converted', 'archived']
+          && data.createdAt is number
+          && data.updatedAt is number;
+        let pUserId = !('userId' in data) || (data.userId is string && data.userId.size() <= 128);
+        let pEmail = !('email' in data) || (data.email is string && data.email.size() <= 150);
+        let pAddress = !('address' in data) || (data.address is string && data.address.size() <= 500);
+        let pService = !('serviceType' in data) || (data.serviceType is string && data.serviceType.size() <= 150);
+        return hasCore && hasMaxKeys && isTypes && pEmail && pAddress && pService;
+      }
+
+      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isValidId(leadId)
+        && isValidLead(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number
+        && (incoming().status == 'new' || incoming().status == 'contacted');
+        
+      allow update: if isValidId(leadId) && isVerifiedOwner(existing().userId)
+        && isValidLead(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'name', 'phone', 'email', 'address', 'serviceType', 'updatedAt']);
+        
+      allow delete: if isVerifiedOwner(existing().userId);
+    }
+    
+    match /services/{serviceId} {
+      function isValidService(data) {
+         let hasCore = data.keys().hasAll(['userId', 'name', 'createdAt', 'updatedAt']);
+         let hasMaxKeys = data.size() <= 12;
+         let isTypes = data.userId == request.auth.uid
+           && data.name is string && data.name.size() <= 150
+           && data.createdAt is number
+           && data.updatedAt is number;
+         let pDesc = !('description' in data) || (data.description is string && data.description.size() <= 3000);
+         let pPrice = !('price' in data) || (data.price is number);
+         return hasCore && hasMaxKeys && isTypes && pDesc && pPrice;
+      }
+      
+      allow read: if isValidId(serviceId); 
+      allow list: if true; 
+      
+      allow create: if isValidId(serviceId) && isOwner(incoming().userId)
+        && isValidService(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+        
+      allow update: if isValidId(serviceId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
+        && isValidService(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'price', 'updatedAt']);
+        
+      allow delete: if isValidId(serviceId) && isOwner(existing().userId);
+    }
+
+    match /site_settings/{settingId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+  }
+}
+

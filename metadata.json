@@ -1,0 +1,8 @@
+{
+  "name": "RA | Projeto App+Website",
+  "description": "App e painel para eletricistas e instaladores com funcionamento offline, orçamentos, OS, clientes e portfólio. (RA | Elétrica & Automação)",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

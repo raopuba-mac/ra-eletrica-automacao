@@ -1,0 +1,180 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "companyName": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsappInfo": { "type": "string" },
+        "websiteSlug": { "type": "string" },
+        "createdAt": { "type": "number", "description": "Timestamp" },
+        "updatedAt": { "type": "number", "description": "Timestamp" }
+      },
+      "required": ["email", "createdAt", "updatedAt"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "A client of the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "createdAt", "updatedAt"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "A service offered by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "createdAt", "updatedAt"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "A quote (orçamento) for a client.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "description": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "clientId", "status", "createdAt", "updatedAt"]
+    },
+    "ServiceOrder": {
+      "title": "Service Order",
+      "description": "A service order (OS) for a client.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "quoteId": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["scheduled", "in_progress", "completed", "cancelled"] },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "photosAfter": { "type": "array", "items": { "type": "string" } },
+        "scheduledDate": { "type": "string" },
+        "scheduledTime": { "type": "string" },
+        "finalPrice": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "clientId", "status", "createdAt", "updatedAt"]
+    },
+    "AgendaEvent": {
+      "title": "Agenda Event",
+      "description": "A scheduled event or reminder.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "number" },
+        "type": { "type": "string", "enum": ["service", "visit", "reminder"] },
+        "recurrence": { "type": "string", "enum": ["none", "daily", "weekly", "monthly"] },
+        "notifyTime": { "type": "string", "enum": ["none", "at_event", "15_min", "1_hour", "24_hours"] },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "title", "date", "type", "createdAt", "updatedAt"]
+    },
+    "PortfolioItem": {
+      "title": "Portfolio Item",
+      "description": "A completed work shown on the website.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "mediaUrls": { "type": "array", "items": { "type": "string" } },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "title", "isPublic", "createdAt", "updatedAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A contact request from the website.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "contacted", "converted", "archived"] },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "phone", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "clients/{clientId}": {
+      "schema": "Client",
+      "description": "Clients managed by users"
+    },
+    "services/{serviceId}": {
+      "schema": "Service",
+      "description": "Services offered by users"
+    },
+    "quotes/{quoteId}": {
+      "schema": "Quote",
+      "description": "Quotes for clients"
+    },
+    "serviceOrders/{orderId}": {
+      "schema": "ServiceOrder",
+      "description": "Service orders"
+    },
+    "agenda/{eventId}": {
+      "schema": "AgendaEvent",
+      "description": "Calendar events"
+    },
+    "portfolio/{itemId}": {
+      "schema": "PortfolioItem",
+      "description": "Portfolio items for public display"
+    },
+    "leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Leads from public website"
+    },
+    "site_settings/{settingId}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "images": { "type": "object" }
+        }
+      },
+      "description": "General site configurations like category covers"
+    }
+  }
+}
