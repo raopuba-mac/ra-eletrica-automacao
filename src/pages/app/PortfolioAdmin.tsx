@@ -367,16 +367,16 @@ export default function PortfolioAdmin() {
                     <div className="flex items-center justify-center w-full h-full text-slate-300"><ImageIcon className="w-12 h-12" /></div>
                   )}
                   
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                   
-                  <div className="absolute top-3 right-3 flex gap-2 translate-y-[-10px] group-hover:translate-y-0 transition-transform opacity-0 group-hover:opacity-100">
-                     <Button variant="secondary" size="icon" className="h-9 w-9 bg-white/95 rounded-xl shadow-lg ring-1 ring-black/5" onClick={() => handleEdit(item)}>
+                  <div className="absolute top-3 right-3 flex gap-2 z-10">
+                     <Button variant="secondary" size="icon" className="h-9 w-9 bg-white/95 rounded-xl shadow-lg ring-1 ring-black/5 hover:bg-white hover:scale-105 transition-all" onClick={() => handleEdit(item)}>
                         <Edit className="w-4 h-4 text-blue-600" />
                      </Button>
-                     <Button variant="secondary" size="icon" className={`h-9 w-9 bg-white/95 rounded-xl shadow-lg ring-1 ring-black/5 ${item.isPublic ? 'text-green-600' : 'text-slate-400'}`} onClick={() => toggleVisibility(item.id, item.isPublic)}>
+                     <Button variant="secondary" size="icon" className={`h-9 w-9 bg-white/95 rounded-xl shadow-lg ring-1 ring-black/5 hover:bg-white hover:scale-105 transition-all ${item.isPublic ? 'text-green-600' : 'text-slate-400'}`} onClick={() => toggleVisibility(item.id, item.isPublic)}>
                         {item.isPublic ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                      </Button>
-                     <Button variant="destructive" size="icon" className="h-9 w-9 rounded-xl shadow-lg" onClick={() => handleDelete(item.id)}>
+                     <Button variant="destructive" size="icon" className="h-9 w-9 rounded-xl shadow-lg hover:scale-105 transition-all" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="w-4 h-4" />
                      </Button>
                   </div>
@@ -390,22 +390,50 @@ export default function PortfolioAdmin() {
                 <div className="p-5">
                    <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">{item.category || 'Sem Categoria'}</div>
                    <h3 className="font-black text-slate-900 text-lg mb-2 leading-tight group-hover:text-blue-600 transition-colors">{item.title}</h3>
-                   <p className="text-slate-500 text-sm line-clamp-2 font-medium">{item.description}</p>
-                   <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
-                      <div className="flex gap-2">
+                   <p className="text-slate-500 text-sm line-clamp-2 font-medium mb-1">{item.description}</p>
+                   
+                   <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <button 
+                          onClick={() => toggleVisibility(item.id, item.isPublic)}
+                          className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 py-1 px-2.5 rounded-full border transition-all ${
+                            item.isPublic 
+                              ? 'text-emerald-700 bg-emerald-50 border-emerald-200/60 hover:bg-emerald-100' 
+                              : 'text-slate-500 bg-slate-50 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.isPublic ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                          {item.isPublic ? 'Público no Site' : 'Oculto / Rascunho'}
+                        </button>
+                        <span className="text-[9px] text-slate-400 font-mono">ID: {item.id.slice(0, 5)}</span>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-1">
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-7 text-[10px] font-black uppercase tracking-tight text-blue-600 hover:text-blue-700 bg-blue-50"
+                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-blue-600 hover:text-blue-700 bg-blue-50/80 hover:bg-blue-100 border border-blue-100/50 rounded-xl"
                           onClick={() => window.open('/portfolio', '_blank')}
                         >
-                          <ExternalLink className="w-3 h-3 mr-1" /> Ver no Site
+                          <ExternalLink className="w-3.5 h-3.5 mr-1 shrink-0" /> Ver Site
                         </Button>
-                        <span className={`text-[10px] font-black uppercase tracking-tight ${item.isPublic ? 'text-green-500' : 'text-slate-400'}`}>
-                          {item.isPublic ? 'Público' : 'Oculto'}
-                        </span>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100/80 border border-amber-100/50 rounded-xl"
+                          onClick={() => handleEdit(item)}
+                        >
+                          <Edit className="w-3.5 h-3.5 mr-1 shrink-0" /> Editar
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size="sm" 
+                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/80 border border-red-100/50 rounded-xl"
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1 shrink-0" /> Excluir
+                        </Button>
                       </div>
-                      <span className="text-[10px] text-slate-300 font-bold">ID: {item.id.slice(0, 5)}</span>
                    </div>
                 </div>
               </motion.div>

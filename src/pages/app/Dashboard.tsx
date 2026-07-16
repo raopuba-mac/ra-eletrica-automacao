@@ -287,18 +287,20 @@ export default function Dashboard() {
 
       {/* Atendimento Rápido Form Card */}
       <Card className="border border-slate-200 shadow-sm rounded-[2rem] overflow-hidden bg-white">
-        <div className="bg-slate-950 text-white p-6 md:p-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="bg-slate-950 text-white p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary border border-primary/20 shrink-0">
               <Zap className="w-6 h-6 fill-current animate-pulse" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-lg md:text-xl font-[1000] tracking-tighter uppercase italic leading-none mb-1">Atendimento Rápido (On-site)</h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Abertura de ordens de serviço e orçamentos em 1 toque na frente do cliente</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-tight">Abertura de ordens de serviço e orçamentos em 1 toque na frente do cliente</p>
             </div>
           </div>
-          <div className="hidden md:block">
-            <span className="text-xs bg-slate-800 text-slate-400 font-black tracking-widest uppercase px-3.5 py-2 rounded-xl border border-white/5">Smartphone Otimizado</span>
+          <div className="hidden sm:block shrink-0 self-start sm:self-auto">
+            <span className="text-[11px] md:text-xs bg-slate-800 text-slate-400 font-black tracking-widest uppercase px-3.5 py-2 rounded-xl border border-white/5 whitespace-nowrap">
+              Smartphone Otimizado
+            </span>
           </div>
         </div>
 
