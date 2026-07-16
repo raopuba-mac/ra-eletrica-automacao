@@ -35,6 +35,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email == "scheduler@ra-eletrica.com";
     }
 
+    function isDashboardUser() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     // --- Collections ---
 
     match /users/{userId} {
@@ -252,19 +256,18 @@ service cloud.firestore {
       allow read: if isValidId(itemId); 
       allow list: if true; 
       
-      allow create: if isValidId(itemId) && isOwner(incoming().userId)
+      allow create: if isValidId(itemId) && isDashboardUser() && incoming().userId == request.auth.uid
         && isValidPortfolio(incoming())
         && incoming().createdAt is number
         && incoming().updatedAt is number;
         
-      allow update: if isValidId(itemId) && isOwner(existing().userId)
-        && isOwner(incoming().userId)
+      allow update: if isValidId(itemId) && isDashboardUser()
         && isValidPortfolio(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
         && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'photoUrl', 'mediaUrls', 'isPublic', 'updatedAt']);
         
-      allow delete: if isValidId(itemId) && isOwner(existing().userId);
+      allow delete: if isValidId(itemId) && isDashboardUser();
     }
 
     match /leads/{leadId} {
