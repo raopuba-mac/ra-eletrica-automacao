@@ -107,9 +107,9 @@ export default function Home() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs md:text-sm font-extrabold tracking-widest uppercase mb-8"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs md:text-sm font-extrabold tracking-widest uppercase mb-8"
             >
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
               Disponível para Novos Projetos
             </motion.div>
             

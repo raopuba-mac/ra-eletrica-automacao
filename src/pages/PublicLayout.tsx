@@ -69,7 +69,9 @@ export default function PublicLayout() {
                   </div>
                 )}
               </div>
-            <span className="font-black text-xl md:text-2xl tracking-tight text-slate-900 group-hover:text-blue-700 transition line-clamp-1">{companyName}</span>
+            <span className="font-black text-sm sm:text-lg md:text-xl lg:text-2xl tracking-tight text-slate-900 group-hover:text-blue-700 transition leading-tight line-clamp-2">
+              {companyName}
+            </span>
           </Link>
           
           <nav className="hidden md:flex gap-6 font-medium text-slate-600">
