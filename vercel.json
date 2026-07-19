@@ -1,5 +1,13 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": [
+        "firebase-applet-config.json",
+        "vapid-keys.json"
+      ]
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",

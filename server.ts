@@ -6,10 +6,21 @@ import webpush from 'web-push';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, collection, getDocs, query, where, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Use static path.join patterns with literal strings so Vercel's bundler (nft) traces and bundles them correctly
 const firebaseConfig = (() => {
   try {
-    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    let configPath = path.join(__dirname, 'firebase-applet-config.json');
+    if (!fs.existsSync(configPath)) {
+      configPath = path.join(__dirname, '../firebase-applet-config.json');
+    }
+    if (!fs.existsSync(configPath)) {
+      configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    }
     return JSON.parse(fs.readFileSync(configPath, 'utf8'));
   } catch (err: any) {
     console.error('[Config Error] Failed to load firebase-applet-config.json:', err.message);
@@ -19,7 +30,13 @@ const firebaseConfig = (() => {
 
 const vapidKeys = (() => {
   try {
-    const keysPath = path.join(process.cwd(), 'vapid-keys.json');
+    let keysPath = path.join(__dirname, 'vapid-keys.json');
+    if (!fs.existsSync(keysPath)) {
+      keysPath = path.join(__dirname, '../vapid-keys.json');
+    }
+    if (!fs.existsSync(keysPath)) {
+      keysPath = path.join(process.cwd(), 'vapid-keys.json');
+    }
     return JSON.parse(fs.readFileSync(keysPath, 'utf8'));
   } catch (err: any) {
     console.warn('[Config Warning] Failed to load vapid-keys.json, generating fallback keys:', err.message);
