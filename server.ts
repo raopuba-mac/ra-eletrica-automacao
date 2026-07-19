@@ -11,8 +11,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import firebaseConfig from './firebase-applet-config.json';
-import vapidKeys from './vapid-keys.json';
+const firebaseConfig = JSON.parse(
+  fs.readFileSync(new URL('./firebase-applet-config.json', import.meta.url), 'utf8')
+);
+const vapidKeys = JSON.parse(
+  fs.readFileSync(new URL('./vapid-keys.json', import.meta.url), 'utf8')
+);
 
 const app = express();
 const PORT = 3000;
