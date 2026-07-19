@@ -6,33 +6,26 @@ import webpush from 'web-push';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, collection, getDocs, query, where, doc, updateDoc, setDoc } from 'firebase/firestore';
-// Helper to safely load JSON files on any environment/bundler/platform
-function loadJsonFile(fileName: string): any {
-  // Try process.cwd() first
-  const cwdPath = path.join(process.cwd(), fileName);
-  if (fs.existsSync(cwdPath)) {
-    return JSON.parse(fs.readFileSync(cwdPath, 'utf8'));
-  }
-  
-  // Try relative to import.meta.url (ESM)
+// Use static path.join patterns with literal strings so Vercel's bundler (nft) traces and bundles them correctly
+const firebaseConfig = (() => {
   try {
-    const fileUrl = new URL(fileName, import.meta.url);
-    if (fs.existsSync(fileUrl)) {
-      return JSON.parse(fs.readFileSync(fileUrl, 'utf8'));
-    }
-  } catch (e) {}
-
-  // Try parent folder as fallback (useful for files inside api/ folder or similar)
-  const parentPath = path.join(process.cwd(), '..', fileName);
-  if (fs.existsSync(parentPath)) {
-    return JSON.parse(fs.readFileSync(parentPath, 'utf8'));
+    const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (err: any) {
+    console.error('[Config Error] Failed to load firebase-applet-config.json:', err.message);
+    throw err;
   }
+})();
 
-  throw new Error(`File ${fileName} not found in any location.`);
-}
-
-const firebaseConfig = loadJsonFile('firebase-applet-config.json');
-const vapidKeys = loadJsonFile('vapid-keys.json');
+const vapidKeys = (() => {
+  try {
+    const keysPath = path.join(process.cwd(), 'vapid-keys.json');
+    return JSON.parse(fs.readFileSync(keysPath, 'utf8'));
+  } catch (err: any) {
+    console.warn('[Config Warning] Failed to load vapid-keys.json, generating fallback keys:', err.message);
+    return webpush.generateVAPIDKeys();
+  }
+})();
 
 const app = express();
 const PORT = 3000;
