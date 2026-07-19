@@ -6,8 +6,33 @@ import webpush from 'web-push';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, collection, getDocs, query, where, doc, updateDoc, setDoc } from 'firebase/firestore';
-import firebaseConfig from './firebase-applet-config.json';
-import vapidKeys from './vapid-keys.json';
+// Helper to safely load JSON files on any environment/bundler/platform
+function loadJsonFile(fileName: string): any {
+  // Try process.cwd() first
+  const cwdPath = path.join(process.cwd(), fileName);
+  if (fs.existsSync(cwdPath)) {
+    return JSON.parse(fs.readFileSync(cwdPath, 'utf8'));
+  }
+  
+  // Try relative to import.meta.url (ESM)
+  try {
+    const fileUrl = new URL(fileName, import.meta.url);
+    if (fs.existsSync(fileUrl)) {
+      return JSON.parse(fs.readFileSync(fileUrl, 'utf8'));
+    }
+  } catch (e) {}
+
+  // Try parent folder as fallback (useful for files inside api/ folder or similar)
+  const parentPath = path.join(process.cwd(), '..', fileName);
+  if (fs.existsSync(parentPath)) {
+    return JSON.parse(fs.readFileSync(parentPath, 'utf8'));
+  }
+
+  throw new Error(`File ${fileName} not found in any location.`);
+}
+
+const firebaseConfig = loadJsonFile('firebase-applet-config.json');
+const vapidKeys = loadJsonFile('vapid-keys.json');
 
 const app = express();
 const PORT = 3000;
