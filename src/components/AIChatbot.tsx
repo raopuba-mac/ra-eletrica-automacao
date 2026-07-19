@@ -105,32 +105,68 @@ Como posso te ajudar hoje?`,
       },
     ]);
 
-    try {
-      // Build history for backend chat API
-      // Exclude the first welcome message and map to simplified history format
-      const history = messages
-        .filter((m) => m.id !== 'welcome')
-        .map((m) => ({
-          role: m.role,
-          text: m.text,
-        }));
+    // Build history for backend chat API
+    // Exclude the first welcome message and map to simplified history format
+    const history = messages
+      .filter((m) => m.id !== 'welcome')
+      .map((m) => ({
+        role: m.role,
+        text: m.text,
+      }));
 
-      const response = await fetch('/api/chat', {
+    const CLOUD_RUN_BACKEND = 'https://ais-pre-iwtrno4f7pot4oi6fzn3cc-248261757368.us-east5.run.app/api/chat';
+
+    const tryFetch = async (url: string, bodyObj: any): Promise<Response> => {
+      return await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: textToSend,
-          history,
-        }),
+        body: JSON.stringify(bodyObj),
       });
+    };
+
+    try {
+      // 1. Try relative path with streaming
+      let response;
+      try {
+        response = await tryFetch('/api/chat', { message: textToSend, history, stream: true });
+      } catch (e) {
+        console.warn('Relative streaming fetch failed, trying non-streaming fallback:', e);
+        // Fallback 1: Try relative path with standard JSON non-streaming
+        response = await tryFetch('/api/chat', { message: textToSend, history, stream: false });
+      }
 
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error('RATE_LIMIT_EXCEEDED');
         }
-        throw new Error('Erro ao obter resposta do assistente.');
+        // Fallback 2: Try absolute Cloud Run endpoint with standard JSON non-streaming
+        console.warn(`Relative fetch returned status ${response.status}, trying direct Cloud Run URL...`);
+        response = await tryFetch(CLOUD_RUN_BACKEND, { message: textToSend, history, stream: false });
+        if (!response.ok) {
+          if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+          throw new Error('Server error');
+        }
+      }
+
+      const contentType = response.headers.get('Content-Type') || '';
+      
+      // If server returned non-streaming JSON directly
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.error) {
+          if (data.error === 'RATE_LIMIT_EXCEEDED') throw new Error('RATE_LIMIT_EXCEEDED');
+          throw new Error(data.error);
+        }
+        if (data.text) {
+          assistantText = data.text;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantMsgId ? { ...m, text: assistantText } : m))
+          );
+          return;
+        }
+        throw new Error('No text returned in JSON fallback');
       }
 
       const reader = response.body?.getReader();
@@ -182,7 +218,30 @@ Como posso te ajudar hoje?`,
         }
       }
     } catch (err: any) {
-      console.error('Chat error:', err);
+      console.warn('Streaming chat attempt failed, trying ultimate non-streaming direct fallback...', err);
+      
+      // Fallback 3: Ultimate direct non-streaming JSON request directly to Cloud Run
+      try {
+        const directResponse = await tryFetch(CLOUD_RUN_BACKEND, {
+          message: textToSend,
+          history,
+          stream: false,
+        });
+
+        if (directResponse.ok) {
+          const data = await directResponse.json();
+          if (data.text) {
+            assistantText = data.text;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantMsgId ? { ...m, text: assistantText } : m))
+            );
+            return;
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('All chatbot fallback strategies exhausted:', fallbackErr);
+      }
+
       const isRateLimit = err.message === 'RATE_LIMIT_EXCEEDED' || String(err).includes('RATE_LIMIT_EXCEEDED');
       setMessages((prev) =>
         prev.map((m) =>

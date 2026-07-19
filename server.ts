@@ -209,7 +209,7 @@ async function startServer() {
   // API route for Gemini using modern SDK and gemini-3.5-flash
   app.post('/api/chat', async (req, res) => {
     try {
-      const { message, history } = req.body;
+      const { message, history, stream } = req.body;
       const key = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
       if (!key || key.trim() === '') {
@@ -256,14 +256,19 @@ Dados do Protocolo:
 * **Ambiente:** [Residencial/Comercial]
 * **Local:** [Bairro/Cidade]
 
-Agora, por favor, clique no botão **\'Falar no WhatsApp\'** que apareceu logo abaixo para enviar essas informações diretamente para o Renan e agendar sua visita técnica."`
+Agora, por favor, clique no botão **'Falar no WhatsApp'** que apareceu logo abaixo para enviar essas informações diretamente para o Renan e agendar sua visita técnica."`
         },
         history: prunedHistory.map((h: any) => ({
           role: h.role === 'user' ? 'user' : 'model',
           parts: [{ text: h.text || "..." }]
         }))
       });
-      
+
+      if (stream === false) {
+        const response = await chat.sendMessage({ message: message });
+        return res.json({ text: response.text });
+      }
+
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
