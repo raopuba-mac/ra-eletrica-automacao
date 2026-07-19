@@ -131,6 +131,11 @@ Como posso te ajudar hoje?`,
       });
     };
 
+    const isHtmlResponse = (res: Response) => {
+      const ct = res.headers.get('Content-Type') || '';
+      return ct.includes('text/html');
+    };
+
     try {
       // 1. Try relative path with streaming
       let response;
@@ -140,6 +145,11 @@ Como posso te ajudar hoje?`,
         console.warn('Relative streaming fetch failed, trying non-streaming fallback:', e);
         // Fallback 1: Try relative path with standard JSON non-streaming
         response = await tryFetch('/api/chat', { message: textToSend, history, stream: false });
+      }
+
+      if (response && isHtmlResponse(response)) {
+        console.error('CHATBOT_ERROR: O chatbot recebeu uma resposta HTML em vez de JSON. Isso ocorre porque a URL de destino em vercel.json aponta para a URL privada do AI Studio (ais-pre-...), que exige cookies de autenticação. Quando você publicar seu app, atualize o vercel.json para apontar para a URL pública de produção (ais-prod-...)!');
+        throw new Error('AI_STUDIO_AUTH_GATEWAY_DETECTED');
       }
 
       if (!response.ok) {
@@ -155,6 +165,11 @@ Como posso te ajudar hoje?`,
           response = await tryFetch(STATIC_BACKEND, { message: textToSend, history, stream: false });
         }
         
+        if (response && isHtmlResponse(response)) {
+          console.error('CHATBOT_ERROR: O chatbot recebeu uma resposta HTML em vez de JSON do fallback. Isso ocorre porque a URL de destino aponta para o ambiente privado do AI Studio.');
+          throw new Error('AI_STUDIO_AUTH_GATEWAY_DETECTED');
+        }
+
         if (!response.ok) {
           if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
           throw new Error('Server error');
@@ -162,6 +177,11 @@ Como posso te ajudar hoje?`,
       }
 
       const contentType = response.headers.get('Content-Type') || '';
+      
+      if (contentType.includes('text/html')) {
+        console.error('CHATBOT_ERROR: O chatbot recebeu uma resposta HTML em vez de JSON. Isso ocorre porque a URL de destino aponta para o ambiente privado do AI Studio.');
+        throw new Error('AI_STUDIO_AUTH_GATEWAY_DETECTED');
+      }
       
       // If server returned non-streaming JSON directly
       if (contentType.includes('application/json')) {
