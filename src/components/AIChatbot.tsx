@@ -62,7 +62,11 @@ Como posso te ajudar hoje?`,
   useEffect(() => {
     const lastMsg = messages[messages.length - 1];
     if (lastMsg && lastMsg.role === 'assistant' && !isGenerating) {
-      if (lastMsg.text.includes('Protocolo') || lastMsg.text.includes('WhatsApp') || lastMsg.text.includes('visita técnica')) {
+      const isErrorMsg = lastMsg.text.includes('problema de conexão') || 
+                         lastMsg.text.includes('demanda muito alta') || 
+                         lastMsg.text.includes('limite de cota');
+
+      if (!isErrorMsg && (lastMsg.text.includes('Protocolo') || lastMsg.text.includes('WhatsApp') || lastMsg.text.includes('visita técnica'))) {
         // Strip out the greeting and system text if possible to isolate protocol, 
         // or just use the full last message as summary.
         setProtocolData(lastMsg.text);
@@ -114,7 +118,8 @@ Como posso te ajudar hoje?`,
         text: m.text,
       }));
 
-    const CLOUD_RUN_BACKEND = 'https://ais-pre-iwtrno4f7pot4oi6fzn3cc-248261757368.us-east5.run.app/api/chat';
+    const DYNAMIC_BACKEND = `${window.location.origin}/api/chat`;
+    const STATIC_BACKEND = 'https://ais-pre-iwtrno4f7pot4oi6fzn3cc-248261757368.us-east5.run.app/api/chat';
 
     const tryFetch = async (url: string, bodyObj: any): Promise<Response> => {
       return await fetch(url, {
@@ -141,9 +146,15 @@ Como posso te ajudar hoje?`,
         if (response.status === 429) {
           throw new Error('RATE_LIMIT_EXCEEDED');
         }
-        // Fallback 2: Try absolute Cloud Run endpoint with standard JSON non-streaming
-        console.warn(`Relative fetch returned status ${response.status}, trying direct Cloud Run URL...`);
-        response = await tryFetch(CLOUD_RUN_BACKEND, { message: textToSend, history, stream: false });
+        // Fallback 2: Try dynamic absolute endpoint with standard JSON non-streaming
+        console.warn(`Relative fetch returned status ${response.status}, trying dynamic absolute URL...`);
+        try {
+          response = await tryFetch(DYNAMIC_BACKEND, { message: textToSend, history, stream: false });
+        } catch (dynamicErr) {
+          console.warn('Dynamic absolute fetch failed, trying static Cloud Run fallback...', dynamicErr);
+          response = await tryFetch(STATIC_BACKEND, { message: textToSend, history, stream: false });
+        }
+        
         if (!response.ok) {
           if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
           throw new Error('Server error');
@@ -218,18 +229,18 @@ Como posso te ajudar hoje?`,
         }
       }
     } catch (err: any) {
-      console.warn('Streaming chat attempt failed, trying ultimate non-streaming direct fallback...', err);
+      console.warn('Streaming chat attempt failed or interrupted, trying non-streaming relative & absolute fallbacks...', err);
       
-      // Fallback 3: Ultimate direct non-streaming JSON request directly to Cloud Run
+      // Fallback 3: Try relative non-streaming (extremely reliable through reverse proxies/Vercel)
       try {
-        const directResponse = await tryFetch(CLOUD_RUN_BACKEND, {
+        const fallbackResponse = await tryFetch('/api/chat', {
           message: textToSend,
           history,
           stream: false,
         });
 
-        if (directResponse.ok) {
-          const data = await directResponse.json();
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
           if (data.text) {
             assistantText = data.text;
             setMessages((prev) =>
@@ -239,7 +250,51 @@ Como posso te ajudar hoje?`,
           }
         }
       } catch (fallbackErr) {
-        console.error('All chatbot fallback strategies exhausted:', fallbackErr);
+        console.error('Relative non-streaming fallback failed:', fallbackErr);
+      }
+
+      // Fallback 4: Try dynamic non-streaming absolute url
+      try {
+        const dynamicResponse = await tryFetch(DYNAMIC_BACKEND, {
+          message: textToSend,
+          history,
+          stream: false,
+        });
+
+        if (dynamicResponse.ok) {
+          const data = await dynamicResponse.json();
+          if (data.text) {
+            assistantText = data.text;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantMsgId ? { ...m, text: assistantText } : m))
+            );
+            return;
+          }
+        }
+      } catch (dynamicErr) {
+        console.error('Dynamic absolute fallback failed:', dynamicErr);
+      }
+
+      // Fallback 5: Try static non-streaming absolute Cloud Run endpoint directly
+      try {
+        const staticResponse = await tryFetch(STATIC_BACKEND, {
+          message: textToSend,
+          history,
+          stream: false,
+        });
+
+        if (staticResponse.ok) {
+          const data = await staticResponse.json();
+          if (data.text) {
+            assistantText = data.text;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantMsgId ? { ...m, text: assistantText } : m))
+            );
+            return;
+          }
+        }
+      } catch (staticErr) {
+        console.error('All static absolute fallback strategies exhausted:', staticErr);
       }
 
       const isRateLimit = err.message === 'RATE_LIMIT_EXCEEDED' || String(err).includes('RATE_LIMIT_EXCEEDED');
