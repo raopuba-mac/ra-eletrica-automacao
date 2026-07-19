@@ -1,5 +1,4 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import fs from 'fs';
@@ -8,11 +7,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, collection, getDocs, query, where, doc, updateDoc, setDoc } from 'firebase/firestore';
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  app.use(express.json());
+app.use(express.json());
 
   // CORS middleware to allow cross-origin requests
   app.use((req, res, next) => {
@@ -207,9 +205,6 @@ async function startServer() {
       console.error('[Push Scheduler] Erro na verificação em segundo plano:', error);
     }
   }
-
-  // Check every 30 seconds
-  setInterval(checkAndSendNotifications, 30000);
 
   // API route for Gemini using modern SDK and gemini-3.5-flash
   app.post('/api/chat', async (req, res) => {
@@ -488,23 +483,36 @@ Sua tarefa é retornar estritamente um objeto JSON com as seguintes propriedades
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+  async function setupViteAndListen() {
+    if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
+    // Only listen and start scheduler if NOT running in serverless environment (Vercel)
+    if (!process.env.VERCEL) {
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+      });
+
+      // Start background scheduler
+      console.log('[Push Server] Iniciando scheduler em segundo plano...');
+      setInterval(checkAndSendNotifications, 30000); // Check every 30 seconds
+    } else {
+      console.log('[Push Server] Executando em ambiente Serverless (Vercel). Escuta de porta desativada.');
+    }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
+  setupViteAndListen();
 
-startServer();
+export default app;
