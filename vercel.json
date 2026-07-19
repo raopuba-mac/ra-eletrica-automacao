@@ -6,7 +6,7 @@
       "destination": "https://ais-pre-iwtrno4f7pot4oi6fzn3cc-248261757368.us-east5.run.app/api/:path*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]
