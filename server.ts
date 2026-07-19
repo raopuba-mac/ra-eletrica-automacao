@@ -11,12 +11,67 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const firebaseConfig = JSON.parse(
-  fs.readFileSync(new URL('./firebase-applet-config.json', import.meta.url), 'utf8')
-);
-const vapidKeys = JSON.parse(
-  fs.readFileSync(new URL('./vapid-keys.json', import.meta.url), 'utf8')
-);
+const firebaseConfig = (() => {
+  try {
+    // 1. Literal pattern to guide static analyzers/bundlers like Vercel nft
+    const p1 = path.join(process.cwd(), 'firebase-applet-config.json');
+    if (fs.existsSync(p1)) {
+      return JSON.parse(fs.readFileSync(p1, 'utf8'));
+    }
+    const p2 = path.join(__dirname, 'firebase-applet-config.json');
+    if (fs.existsSync(p2)) {
+      return JSON.parse(fs.readFileSync(p2, 'utf8'));
+    }
+    const p3 = path.join(__dirname, '..', 'firebase-applet-config.json');
+    if (fs.existsSync(p3)) {
+      return JSON.parse(fs.readFileSync(p3, 'utf8'));
+    }
+    // Fallback using import.meta.url URL conversion
+    const u1 = new URL('./firebase-applet-config.json', import.meta.url);
+    if (fs.existsSync(u1)) {
+      return JSON.parse(fs.readFileSync(u1, 'utf8'));
+    }
+    const u2 = new URL('../firebase-applet-config.json', import.meta.url);
+    if (fs.existsSync(u2)) {
+      return JSON.parse(fs.readFileSync(u2, 'utf8'));
+    }
+    throw new Error('Config file not found in any static paths');
+  } catch (err: any) {
+    console.error('[Config Loader] Failed to load firebase-applet-config.json:', err.message);
+    throw err;
+  }
+})();
+
+const vapidKeys = (() => {
+  try {
+    // 1. Literal pattern to guide static analyzers/bundlers like Vercel nft
+    const p1 = path.join(process.cwd(), 'vapid-keys.json');
+    if (fs.existsSync(p1)) {
+      return JSON.parse(fs.readFileSync(p1, 'utf8'));
+    }
+    const p2 = path.join(__dirname, 'vapid-keys.json');
+    if (fs.existsSync(p2)) {
+      return JSON.parse(fs.readFileSync(p2, 'utf8'));
+    }
+    const p3 = path.join(__dirname, '..', 'vapid-keys.json');
+    if (fs.existsSync(p3)) {
+      return JSON.parse(fs.readFileSync(p3, 'utf8'));
+    }
+    // Fallback using import.meta.url URL conversion
+    const u1 = new URL('./vapid-keys.json', import.meta.url);
+    if (fs.existsSync(u1)) {
+      return JSON.parse(fs.readFileSync(u1, 'utf8'));
+    }
+    const u2 = new URL('../vapid-keys.json', import.meta.url);
+    if (fs.existsSync(u2)) {
+      return JSON.parse(fs.readFileSync(u2, 'utf8'));
+    }
+    throw new Error('Keys file not found in any static paths');
+  } catch (err: any) {
+    console.error('[Config Loader] Failed to load vapid-keys.json:', err.message);
+    throw err;
+  }
+})();
 
 const app = express();
 const PORT = 3000;
