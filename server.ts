@@ -30,12 +30,23 @@ app.use(express.json());
   });
 
   // Load Firebase configuration
-  const firebaseConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
-  if (!fs.existsSync(firebaseConfigPath)) {
-    console.error('Firebase configuration file not found at:', firebaseConfigPath);
+  let firebaseConfig: any;
+  try {
+    const configUrl = new URL('./firebase-applet-config.json', import.meta.url);
+    if (fs.existsSync(configUrl)) {
+      firebaseConfig = JSON.parse(fs.readFileSync(configUrl, 'utf8'));
+    } else {
+      const firebaseConfigPath = path.join(process.cwd(), 'firebase-applet-config.json');
+      if (fs.existsSync(firebaseConfigPath)) {
+        firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
+      } else {
+        throw new Error('Firebase config file not found in any location.');
+      }
+    }
+  } catch (err: any) {
+    console.error('[Firebase Init Error] Could not load configuration:', err.message);
     process.exit(1);
   }
-  const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, 'utf8'));
 
   // Initialize Firebase Client App
   const firebaseApp = initializeApp(firebaseConfig);
@@ -103,15 +114,23 @@ app.use(express.json());
 
   // VAPID keys setup for Web Push
   let vapidKeys: { publicKey: string; privateKey: string };
+  const keysUrl = new URL('./vapid-keys.json', import.meta.url);
   const keysPath = path.join(process.cwd(), 'vapid-keys.json');
 
-  if (fs.existsSync(keysPath)) {
+  if (fs.existsSync(keysUrl)) {
+    vapidKeys = JSON.parse(fs.readFileSync(keysUrl, 'utf8'));
+    console.log('[Push Server] Chaves VAPID carregadas com sucesso via URL.');
+  } else if (fs.existsSync(keysPath)) {
     vapidKeys = JSON.parse(fs.readFileSync(keysPath, 'utf8'));
-    console.log('[Push Server] Chaves VAPID carregadas com sucesso.');
+    console.log('[Push Server] Chaves VAPID carregadas com sucesso via cwd.');
   } else {
     vapidKeys = webpush.generateVAPIDKeys();
-    fs.writeFileSync(keysPath, JSON.stringify(vapidKeys, null, 2), 'utf8');
-    console.log('[Push Server] Novas chaves VAPID geradas e salvas em vapid-keys.json.');
+    try {
+      fs.writeFileSync(keysPath, JSON.stringify(vapidKeys, null, 2), 'utf8');
+      console.log('[Push Server] Novas chaves VAPID geradas e salvas em vapid-keys.json.');
+    } catch (writeErr: any) {
+      console.warn('[Push Server] Não foi possível salvar as chaves VAPID no disco (provavelmente ambiente serverless):', writeErr.message);
+    }
   }
 
   webpush.setVapidDetails(
