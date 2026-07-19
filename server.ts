@@ -213,6 +213,12 @@ async function startServer() {
         }
       });
 
+      // Prune history to avoid token size or rate limit issues (retains last 6 messages / 3 interactions)
+      const maxHistoryLength = 6;
+      const prunedHistory = history && history.length > maxHistoryLength
+        ? history.slice(-maxHistoryLength)
+        : (history || []);
+
       const chat = ai.chats.create({
         model: "gemini-3.5-flash",
         config: {
@@ -240,10 +246,10 @@ Dados do Protocolo:
 
 Agora, por favor, clique no botão **\'Falar no WhatsApp\'** que apareceu logo abaixo para enviar essas informações diretamente para o Renan e agendar sua visita técnica."`
         },
-        history: history?.map((h: any) => ({
+        history: prunedHistory.map((h: any) => ({
           role: h.role === 'user' ? 'user' : 'model',
           parts: [{ text: h.text || "..." }]
-        })) || []
+        }))
       });
       
       res.setHeader('Content-Type', 'text/event-stream');
@@ -263,10 +269,22 @@ Agora, por favor, clique no botão **\'Falar no WhatsApp\'** que apareceu logo a
       res.end();
     } catch (e: any) {
       console.error("Gemini Server Error:", e);
+      const errStr = String(e).toLowerCase();
+      const isQuotaError = errStr.includes("429") || 
+                           errStr.includes("quota") || 
+                           errStr.includes("limit") || 
+                           errStr.includes("exhausted") || 
+                           errStr.includes("rate");
+
       if (!res.headersSent) {
-          res.status(500).json({ error: e.message || String(e) });
+          if (isQuotaError) {
+              res.status(429).json({ error: "RATE_LIMIT_EXCEEDED", message: "O limite de requisições do assistente foi atingido temporariamente." });
+          } else {
+              res.status(500).json({ error: e.message || String(e) });
+          }
       } else {
-          res.write(`data: ${JSON.stringify({ error: "Erro ao processar resposta: " + (e.message || String(e)) })}\n\n`);
+          const errObj = { error: isQuotaError ? "RATE_LIMIT_EXCEEDED" : (e.message || String(e)) };
+          res.write(`data: ${JSON.stringify(errObj)}\n\n`);
           res.end();
       }
     }

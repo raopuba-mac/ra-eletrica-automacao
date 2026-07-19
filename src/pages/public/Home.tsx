@@ -9,7 +9,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { addDoc } from 'firebase/firestore';
 import { motion } from 'motion/react';
-import { Phone, Mail, ArrowRight } from 'lucide-react';
+import { Phone, Mail, ArrowRight, Sparkles, Zap, Cpu, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import perfilImg from './perfil.jpg';
 import SEO from '../../components/SEO';
@@ -136,7 +136,7 @@ export default function Home() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+              className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center"
             >
               <a href="#contact" className={cn(buttonVariants({ size: "lg" }), "bg-primary hover:bg-primary/90 text-white rounded-full px-12 py-8 h-auto text-xl font-black shadow-2xl shadow-primary/40 uppercase tracking-tighter italic")}>
                 Solicitar Visita Técnica
@@ -232,6 +232,11 @@ export default function Home() {
       {/* Featured Services Overview */}
       <section className="bg-slate-900 py-24 text-white overflow-hidden relative">
         <div className="absolute inset-0 bg-grid-slate-100 opacity-[0.03]"></div>
+        
+        {/* Ambient electrical glows in background */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[6000ms]"></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[8000ms]"></div>
+        
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-4xl md:text-5xl font-black tracking-tight">SOLUÇÕES COMPLETAS</h2>
@@ -239,17 +244,17 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-             {[
-               { title: "Elétrica", desc: "Instalações de baixa tensão, quadros e manutenção." },
-               { title: "Automação", desc: "Controle por voz, iluminação inteligente e conforto." },
-               { title: "Segurança", desc: "Câmeras 4k, alarmes monitorados e acesso remoto." }
-             ].map((s, idx) => (
-               <div key={idx} className="bg-white/5 border border-white/10 p-10 rounded-[2rem] hover:bg-white/10 transition-all hover:translate-y-[-8px]">
-                  <div className="text-primary font-black text-6xl mb-6">0{idx+1}</div>
-                  <h3 className="text-2xl md:text-3xl font-black text-white uppercase italic tracking-tighter mb-4">{s.title}</h3>
-                  <p className="text-slate-300 text-lg leading-relaxed">{s.desc}</p>
-               </div>
-             ))}
+            {[
+              { title: "Elétrica", desc: "Instalações de baixa tensão, quadros e manutenção." },
+              { title: "Automação", desc: "Controle por voz, iluminação inteligente e conforto." },
+              { title: "Segurança", desc: "Câmeras 4k, alarmes monitorados e acesso remoto." }
+            ].map((s, idx) => (
+              <div key={idx} className="bg-white/5 border border-white/10 p-10 rounded-[2rem] hover:bg-white/10 transition-all hover:translate-y-[-8px]">
+                <div className="text-primary font-black text-6xl mb-6">0{idx+1}</div>
+                <h3 className="text-2xl md:text-3xl font-black text-white uppercase italic tracking-tighter mb-4">{s.title}</h3>
+                <p className="text-slate-300 text-lg leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
           </div>
           
           <div className="mt-16 text-center">

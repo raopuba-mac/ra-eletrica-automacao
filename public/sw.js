@@ -1,5 +1,5 @@
 // Service Worker for RA Elétrica & Automação PWA and Offline Support
-const CACHE_NAME = 'ra-electrica-v10';
+const CACHE_NAME = 'ra-electrica-v11';
 const OFFLINE_URL = '/index.html';
 
 // Assets that are critical for offline boot
@@ -44,6 +44,8 @@ self.addEventListener('fetch', (event) => {
   const isDevelopment = url.hostname === 'localhost' || 
                         url.hostname === '127.0.0.1' || 
                         url.hostname.includes('ais-dev-') ||
+                        url.hostname.includes('ais-pre-') ||
+                        url.hostname.includes('.run.app') ||
                         url.pathname.includes('hmr') ||
                         url.pathname.includes('vite');
 
