@@ -8,7 +8,7 @@ async function run() {
     stream: false
   };
 
-  const res = await fetch("https://ais-pre-iwtrno4f7pot4oi6fzn3cc-248261757368.us-east5.run.app/api/chat", {
+  const res = await fetch("http://localhost:3000/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(reqBody)
