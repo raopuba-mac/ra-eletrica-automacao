@@ -66,10 +66,20 @@ const vapidKeys = (() => {
     if (fs.existsSync(u2)) {
       return JSON.parse(fs.readFileSync(u2, 'utf8'));
     }
-    throw new Error('Keys file not found in any static paths');
+    
+    // Auto-generate if missing
+    console.warn('[Config Loader] vapid-keys.json não encontrado. Gerando chaves temporárias/novas...');
+    const generated = webpush.generateVAPIDKeys();
+    try {
+      fs.writeFileSync(p1, JSON.stringify(generated, null, 2), 'utf8');
+      console.log('[Config Loader] Chaves VAPID geradas com sucesso e salvas em:', p1);
+    } catch (writeErr: any) {
+      console.warn('[Config Loader] Não foi possível salvar as chaves no disco:', writeErr.message);
+    }
+    return generated;
   } catch (err: any) {
-    console.error('[Config Loader] Failed to load vapid-keys.json:', err.message);
-    throw err;
+    console.error('[Config Loader] Erro ao carregar/gerar vapid-keys.json, usando chaves em memória:', err.message);
+    return webpush.generateVAPIDKeys();
   }
 })();
 
