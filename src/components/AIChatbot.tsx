@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Send, X, RotateCcw, Sparkles, Phone, ArrowRight, Bot, User, Check } from 'lucide-react';
 import { Button } from './ui/button';
+import { db } from '../lib/firebase';
+import { collection, query, getDocs, limit, addDoc } from 'firebase/firestore';
 
 interface Message {
   id: string;
@@ -31,6 +33,25 @@ Como posso te ajudar hoje?`,
   const [isGenerating, setIsGenerating] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
   const [protocolData, setProtocolData] = useState<string | null>(null);
+  const [hasSavedLead, setHasSavedLead] = useState(false);
+  const [isSavingLead, setIsSavingLead] = useState(false);
+
+  // Parse lead fields from structured protocol markdown
+  const extractLeadFromProtocol = (text: string) => {
+    const nameMatch = text.match(/(?:\*\*)?Nome(?:\*\*)?:\s*(.+)/i);
+    const phoneMatch = text.match(/(?:\*\*)?Telefone(?:\*\*)?:\s*(.+)/i);
+    const serviceMatch = text.match(/(?:\*\*)?Serviço(?:\*\*)?:\s*(.+)/i);
+    const environmentMatch = text.match(/(?:\*\*)?Ambiente(?:\*\*)?:\s*(.+)/i);
+    const localMatch = text.match(/(?:\*\*)?Local(?:\*\*)?:\s*(.+)/i);
+
+    return {
+      name: nameMatch ? nameMatch[1].replace(/\*\*|^- /g, '').trim() : '',
+      phone: phoneMatch ? phoneMatch[1].replace(/\*\*|^- /g, '').trim() : '',
+      serviceType: serviceMatch ? serviceMatch[1].replace(/\*\*|^- /g, '').trim() : '',
+      environment: environmentMatch ? environmentMatch[1].replace(/\*\*|^- /g, '').trim() : '',
+      address: localMatch ? localMatch[1].replace(/\*\*|^- /g, '').trim() : '',
+    };
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +94,73 @@ Como posso te ajudar hoje?`,
       }
     }
   }, [messages, isGenerating]);
+
+  // Automatically save lead to Firestore when protocolData is set
+  useEffect(() => {
+    if (protocolData && !hasSavedLead && !isSavingLead) {
+      const saveLeadDirectly = async () => {
+        setIsSavingLead(true);
+        try {
+          const leadData = extractLeadFromProtocol(protocolData);
+          
+          const name = leadData.name || 'Cliente Chatbot';
+          const phoneNum = leadData.phone || '';
+          const serviceType = leadData.serviceType || 'Serviço Geral';
+          const environment = leadData.environment || 'Residencial';
+          const address = leadData.address || 'Não informado';
+
+          // Query ownerId (admin) from Firestore users collection
+          const usersSnap = await getDocs(query(collection(db, 'users'), limit(1)));
+          let ownerId = 'admin';
+          if (!usersSnap.empty) {
+            ownerId = usersSnap.docs[0].id;
+          }
+
+          // Add lead to Firestore
+          await addDoc(collection(db, 'leads'), {
+            userId: ownerId,
+            name,
+            phone: phoneNum,
+            email: '',
+            address: `${environment} - ${address}`,
+            serviceType,
+            status: 'new',
+            notes: `Lead coletado de forma 100% automática pelo Assistente Virtual do Chatbot.\n\nProtocolo Completo:\n${protocolData}`,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          });
+
+          console.log('[Chatbot] Lead salvo no Firestore com sucesso!');
+          setHasSavedLead(true);
+
+          // Trigger real-time push notification to ownerId
+          try {
+            await fetch('/api/notifications/test-push', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                userId: ownerId,
+                title: 'Novo Lead no Chatbot 🤖',
+                body: `${name} solicitou ${serviceType} em ${address}`
+              })
+            });
+            console.log('[Chatbot] Notificação push enviada ao técnico.');
+          } catch (pushErr) {
+            console.warn('[Chatbot] Falha ao disparar push notification:', pushErr);
+          }
+
+        } catch (err) {
+          console.error('[Chatbot] Erro ao salvar lead:', err);
+        } finally {
+          setIsSavingLead(false);
+        }
+      };
+
+      saveLeadDirectly();
+    }
+  }, [protocolData, hasSavedLead, isSavingLead]);
 
   // Focus input when opening
   useEffect(() => {
@@ -357,6 +445,8 @@ Como posso te ajudar hoje?`,
         },
       ]);
       setProtocolData(null);
+      setHasSavedLead(false);
+      setIsSavingLead(false);
       setInputValue('');
       setIsGenerating(false);
     }
@@ -590,18 +680,27 @@ Como posso te ajudar hoje?`,
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
-                  <p className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    Protocolo de orçamento gerado com sucesso!
-                  </p>
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-slate-800 font-bold flex items-center gap-1.5">
+                      <span className="flex h-2 w-2 relative shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      Orçamento Enviado ao Técnico!
+                    </p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Seus dados foram salvos diretamente no painel interno do Renan Augusto. Ele entrará em contato em breve!
+                    </p>
+                  </div>
+                  
                   <Button
                     onClick={handleWhatsAppRedirect}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-md shadow-emerald-600/10 transition flex items-center justify-center gap-2 text-xs md:text-sm"
                   >
                     <Phone className="w-4.5 h-4.5 fill-current" />
-                    Enviar Orçamento para WhatsApp
+                    Falar no WhatsApp (Opcional)
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </motion.div>

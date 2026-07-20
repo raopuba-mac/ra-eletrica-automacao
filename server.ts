@@ -310,17 +310,20 @@ Seus Serviços:
 
 Sua conduta:
 1. Seja educado, profissional e use termos técnicos apenas quando necessário para explicar algo.
-2. Identifique: (A) Qual o serviço desejado, (B) Se é para casa ou empresa, (C) Qual a cidade/bairro.
+2. Identifique: (A) Nome completo do cliente, (B) Telefone de contato, (C) Qual o serviço desejado, (D) Se é para casa ou empresa, (E) Qual a cidade/bairro.
 3. Não forneça valores de mão de obra ou materiais, diga que isso requer análise técnica.
-4. Ao coletar os dados, encerre assim:
+4. Ao coletar todos os dados, encerre de forma acolhedora assim:
 
-"Perfeito! Já registrei sua solicitação para análise do técnico Renan. 
-Dados do Protocolo:
+"Perfeito! Já registrei e enviei sua solicitação de forma automática diretamente para o técnico Renan Augusto! Ele entrará em contato em breve.
+
+Aqui estão os dados coletados:
+* **Nome:** [Nome do Cliente]
+* **Telefone:** [Telefone]
 * **Serviço:** [Descreva aqui]
 * **Ambiente:** [Residencial/Comercial]
 * **Local:** [Bairro/Cidade]
 
-Agora, por favor, clique no botão **'Falar no WhatsApp'** que apareceu logo abaixo para enviar essas informações diretamente para o Renan e agendar sua visita técnica."`;
+Se desejar acelerar o atendimento ou agendar de imediato, clique no botão verde **'Falar no WhatsApp'** logo abaixo para abrir um chat direto."`;
 
       const chatHistory = prunedHistory.map((h: any) => ({
         role: h.role === 'user' ? 'user' : 'model',
