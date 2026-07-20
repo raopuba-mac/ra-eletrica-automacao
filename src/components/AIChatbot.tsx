@@ -38,18 +38,25 @@ Como posso te ajudar hoje?`,
 
   // Parse lead fields from structured protocol markdown
   const extractLeadFromProtocol = (text: string) => {
-    const nameMatch = text.match(/(?:\*\*)?Nome(?:\*\*)?:\s*(.+)/i);
-    const phoneMatch = text.match(/(?:\*\*)?Telefone(?:\*\*)?:\s*(.+)/i);
-    const serviceMatch = text.match(/(?:\*\*)?Serviço(?:\*\*)?:\s*(.+)/i);
-    const environmentMatch = text.match(/(?:\*\*)?Ambiente(?:\*\*)?:\s*(.+)/i);
-    const localMatch = text.match(/(?:\*\*)?Local(?:\*\*)?:\s*(.+)/i);
+    const extractField = (label: string) => {
+      const regex = new RegExp(`(?:\\*\\*|\\*|)?${label}(?:\\*\\*|\\*|)?\\s*:\\s*(.*)`, 'i');
+      const match = text.match(regex);
+      if (match && match[1]) {
+        return match[1]
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '')
+          .replace(/^- /g, '')
+          .trim();
+      }
+      return '';
+    };
 
     return {
-      name: nameMatch ? nameMatch[1].replace(/\*\*|^- /g, '').trim() : '',
-      phone: phoneMatch ? phoneMatch[1].replace(/\*\*|^- /g, '').trim() : '',
-      serviceType: serviceMatch ? serviceMatch[1].replace(/\*\*|^- /g, '').trim() : '',
-      environment: environmentMatch ? environmentMatch[1].replace(/\*\*|^- /g, '').trim() : '',
-      address: localMatch ? localMatch[1].replace(/\*\*|^- /g, '').trim() : '',
+      name: extractField('Nome'),
+      phone: extractField('Telefone'),
+      serviceType: extractField('Serviço'),
+      environment: extractField('Ambiente'),
+      address: extractField('Local'),
     };
   };
 
@@ -453,18 +460,35 @@ Como posso te ajudar hoje?`,
   };
 
   const handleWhatsAppRedirect = () => {
-    let text = `Olá Renan! Quero solicitar um atendimento através do assistente virtual do site.\n\n`;
+    let text = '';
     
     if (protocolData) {
-      // Format protocol data cleanly for WhatsApp
-      // Remove Markdown bold indicators **
-      const cleanProtocol = protocolData
-        .replace(/\*\*/g, '')
-        .replace(/Falar no WhatsApp/gi, '')
-        .trim();
-      text += `*Dados do Atendimento:*\n${cleanProtocol}`;
+      const data = extractLeadFromProtocol(protocolData);
+      
+      // If we extracted at least some fields, construct an incredibly polished and premium structured text
+      if (data.name || data.serviceType || data.address) {
+        text = `⚡ *RA | Elétrica, Automação e Segurança* ⚡\n`;
+        text += `_Solicitação de Orçamento via Assistente Virtual_\n\n`;
+        text += `Olá, Renan! Acabo de preencher minha solicitação através do assistente virtual no seu site:\n\n`;
+        text += `👤 *Nome:* ${data.name || 'Não informado'}\n`;
+        text += `📞 *Telefone:* ${data.phone || 'Não informado'}\n`;
+        text += `🛠️ *Serviço:* ${data.serviceType || 'Não informado'}\n`;
+        text += `🏠 *Ambiente:* ${data.environment || 'Não informado'}\n`;
+        text += `📍 *Local:* ${data.address || 'Não informado'}\n\n`;
+        text += `--- \n`;
+        text += `🤖 _Mensagem enviada automaticamente pelo Chatbot_`;
+      } else {
+        // Fallback: clean up the protocolData but keep it nice
+        const cleanProtocol = protocolData
+          .replace(/\*\*/g, '*') // Convert markdown bold to WhatsApp bold
+          .replace(/Falar no WhatsApp/gi, '')
+          .replace(/clique no botão verde/gi, '')
+          .replace(/clique no botão/gi, '')
+          .trim();
+        text = `Olá Renan! Quero solicitar um atendimento através do assistente virtual do site.\n\n*Dados do Atendimento:*\n${cleanProtocol}`;
+      }
     } else {
-      text += `Gostaria de solicitar um orçamento para serviços elétricos/automação.`;
+      text = `Olá Renan! Gostaria de solicitar um orçamento para serviços de eletricidade, automação residencial ou segurança eletrônica.`;
     }
 
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
