@@ -119,7 +119,7 @@ Como posso te ajudar hoje?`,
       }));
 
     const DYNAMIC_BACKEND = `${window.location.origin}/api/chat`;
-    const STATIC_BACKEND = 'https://ais-pre-iwtrno4f7pot4oi6fzn3cc-248261757368.us-east5.run.app/api/chat';
+    const STATIC_BACKEND = 'https://www.ra-eletrica.com.br/api/chat';
 
     const tryFetch = async (url: string, bodyObj: any): Promise<Response> => {
       return await fetch(url, {

@@ -37,8 +37,17 @@ const firebaseConfig = (() => {
     }
     throw new Error('Config file not found in any static paths');
   } catch (err: any) {
-    console.error('[Config Loader] Failed to load firebase-applet-config.json:', err.message);
-    throw err;
+    console.warn('[Config Loader] Aviso: Não foi possível carregar firebase-applet-config.json do disco. Usando fallback de produção configurado:', err.message);
+    return {
+      projectId: "gen-lang-client-0334927020",
+      appId: "1:624386776331:web:ded7a425ce40304f0a960e",
+      apiKey: "AIzaSyBTYcLJ0fJKHJ-2EMTKdYF3vdSlVc4v_js",
+      authDomain: "gen-lang-client-0334927020.web.app",
+      firestoreDatabaseId: "ai-studio-d189549e-63b3-4ffe-b584-e1030a6caef4",
+      storageBucket: "gen-lang-client-0334927020.firebasestorage.app",
+      messagingSenderId: "624386776331",
+      measurementId: ""
+    };
   }
 })();
 
@@ -78,8 +87,11 @@ const vapidKeys = (() => {
     }
     return generated;
   } catch (err: any) {
-    console.error('[Config Loader] Erro ao carregar/gerar vapid-keys.json, usando chaves em memória:', err.message);
-    return webpush.generateVAPIDKeys();
+    console.warn('[Config Loader] Aviso: Não foi possível carregar vapid-keys.json do disco. Usando fallback de produção configurado:', err.message);
+    return {
+      publicKey: "BEi0SpGn92dg-V-krlgixlPbTgDtZznbD21Bp7H4IOG19YhAmgMmo9DzrB0W44heVlqyOfWtTfb_6ci8DPClK3k",
+      privateKey: "ePa11iK-Wiqx35hJEi7-ljkEuuUNBRcXgwBHxdB55O0"
+    };
   }
 })();
 
@@ -261,7 +273,7 @@ app.use(express.json());
     }
   }
 
-  // API route for Gemini using modern SDK and gemini-3.5-flash
+  // API route for Gemini using modern SDK and gemini-3.5-flash with automatic model aliases fallback
   app.post('/api/chat', async (req, res) => {
     try {
       const { message, history, stream } = req.body;
@@ -286,10 +298,7 @@ app.use(express.json());
         ? history.slice(-maxHistoryLength)
         : (history || []);
 
-      const chat = ai.chats.create({
-        model: "gemini-3.5-flash",
-        config: {
-          systemInstruction: `Você é o assistente virtual da RA | Elétrica, Automação e Segurança Eletrônica (do técnico Renan Augusto).
+      const systemInstructionText = `Você é o assistente virtual da RA | Elétrica, Automação e Segurança Eletrônica (do técnico Renan Augusto).
 Objetivo: Atendimento inicial, triagem de interesse e coleta de informações básicas.
 
 Seus Serviços:
@@ -311,34 +320,91 @@ Dados do Protocolo:
 * **Ambiente:** [Residencial/Comercial]
 * **Local:** [Bairro/Cidade]
 
-Agora, por favor, clique no botão **'Falar no WhatsApp'** que apareceu logo abaixo para enviar essas informações diretamente para o Renan e agendar sua visita técnica."`
-        },
-        history: prunedHistory.map((h: any) => ({
-          role: h.role === 'user' ? 'user' : 'model',
-          parts: [{ text: h.text || "..." }]
-        }))
-      });
+Agora, por favor, clique no botão **'Falar no WhatsApp'** que apareceu logo abaixo para enviar essas informações diretamente para o Renan e agendar sua visita técnica."`;
 
-      if (stream === false) {
-        const response = await chat.sendMessage({ message: message });
-        return res.json({ text: response.text });
-      }
+      const chatHistory = prunedHistory.map((h: any) => ({
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: [{ text: h.text || "..." }]
+      }));
 
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no');
+      // Helper to initialize chat session with specific model
+      const initChat = (modelName: string) => {
+        return ai.chats.create({
+          model: modelName,
+          config: {
+            systemInstruction: systemInstructionText
+          },
+          history: chatHistory
+        });
+      };
 
-      const streamResponse = await chat.sendMessageStream({ message: message });
+      try {
+        const chat = initChat("gemini-3.5-flash");
+        if (stream === false) {
+          const response = await chat.sendMessage({ message: message });
+          return res.json({ text: response.text });
+        }
 
-      for await (const chunk of streamResponse) {
-        const chunkText = chunk.text;
-        if (chunkText) {
-          res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+
+        const streamResponse = await chat.sendMessageStream({ message: message });
+        for await (const chunk of streamResponse) {
+          const chunkText = chunk.text;
+          if (chunkText) {
+            res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+          }
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+      } catch (err: any) {
+        console.warn(`[Gemini Server] Falha ao usar o modelo gemini-3.5-flash (possível alta demanda). Tentando fallback...`, err.message);
+        
+        // Sequence of reliable backup models
+        const fallbackModels = ["gemini-flash-latest", "gemini-3.1-flash-lite"];
+        let success = false;
+
+        for (const fbModel of fallbackModels) {
+          try {
+            console.log(`[Gemini Server] Tentando modelo fallback: ${fbModel}`);
+            const chat = initChat(fbModel);
+            
+            if (stream === false) {
+              const response = await chat.sendMessage({ message: message });
+              res.json({ text: response.text });
+              success = true;
+              break;
+            } else {
+              if (!res.headersSent) {
+                res.setHeader('Content-Type', 'text/event-stream');
+                res.setHeader('Cache-Control', 'no-cache');
+                res.setHeader('Connection', 'keep-alive');
+                res.setHeader('X-Accel-Buffering', 'no');
+              }
+
+              const streamResponse = await chat.sendMessageStream({ message: message });
+              for await (const chunk of streamResponse) {
+                const chunkText = chunk.text;
+                if (chunkText) {
+                  res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+                }
+              }
+              res.write('data: [DONE]\n\n');
+              res.end();
+              success = true;
+              break;
+            }
+          } catch (fbErr: any) {
+            console.error(`[Gemini Server] Falha também no modelo fallback ${fbModel}:`, fbErr.message);
+          }
+        }
+
+        if (!success) {
+          throw err; // Propagate original error if all fallbacks failed
         }
       }
-      res.write('data: [DONE]\n\n');
-      res.end();
     } catch (e: any) {
       console.error("Gemini Server Error:", e);
       const errStr = String(e).toLowerCase();
@@ -346,7 +412,10 @@ Agora, por favor, clique no botão **'Falar no WhatsApp'** que apareceu logo aba
                            errStr.includes("quota") || 
                            errStr.includes("limit") || 
                            errStr.includes("exhausted") || 
-                           errStr.includes("rate");
+                           errStr.includes("rate") ||
+                           errStr.includes("demand") ||
+                           errStr.includes("unavailable") ||
+                           errStr.includes("503");
 
       if (!res.headersSent) {
           if (isQuotaError) {
@@ -384,14 +453,15 @@ Agora, por favor, clique no botão **'Falar no WhatsApp'** que apareceu logo aba
         }
       });
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `Analise a seguinte transcrição de áudio de um serviço elétrico/automação em português brasileiro e extraia as informações de forma estruturada para preencher um orçamento.
-        
+      const generateExtractorContent = async (modelName: string) => {
+        return await ai.models.generateContent({
+          model: modelName,
+          contents: `Analise a seguinte transcrição de áudio de um serviço elétrico/automação em português brasileiro e extraia as informações de forma estruturada para preencher um orçamento.
+          
 Transcrição de áudio:
 "${text}"`,
-        config: {
-          systemInstruction: `Você é um assistente de inteligência artificial especializado em extrair itens de orçamento e informações de serviços a partir de comandos de voz ou notas faladas de eletricistas.
+          config: {
+            systemInstruction: `Você é um assistente de inteligência artificial especializado em extrair itens de orçamento e informações de serviços a partir de comandos de voz ou notas faladas de eletricistas.
 Sua tarefa é retornar estritamente um objeto JSON com as seguintes propriedades:
 1. 'description' (string): Breve resumo ou descrição geral do serviço (máximo 120 caracteres).
 2. 'items' (array de objetos): Cada objeto deve representar um item/serviço com:
@@ -401,31 +471,54 @@ Sua tarefa é retornar estritamente um objeto JSON com as seguintes propriedades
 3. 'remarks' (string): Observações adicionais, alertas de segurança ou ferramentas/materiais necessários falados (ex: 'Trazer escada de 8 degraus').
 4. 'includesMaterial' (boolean): true se o usuário disser que materiais estão inclusos ou que o orçamento inclui material, senão false.
 5. 'discount' (number): Valor do desconto extra mencionado, senão 0.`,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
-              description: { type: "STRING" },
-              items: {
-                type: "ARRAY",
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                description: { type: "STRING" },
                 items: {
-                  type: "OBJECT",
-                  properties: {
-                    name: { type: "STRING" },
-                    quantity: { type: "INTEGER" },
-                    price: { type: "NUMBER" }
-                  },
-                  required: ["name", "quantity", "price"]
-                }
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      name: { type: "STRING" },
+                      quantity: { type: "INTEGER" },
+                      price: { type: "NUMBER" }
+                    },
+                    required: ["name", "quantity", "price"]
+                  }
+                },
+                remarks: { type: "STRING" },
+                includesMaterial: { type: "BOOLEAN" },
+                discount: { type: "NUMBER" }
               },
-              remarks: { type: "STRING" },
-              includesMaterial: { type: "BOOLEAN" },
-              discount: { type: "NUMBER" }
-            },
-            required: ["description", "items", "remarks", "includesMaterial", "discount"]
+              required: ["description", "items", "remarks", "includesMaterial", "discount"]
+            }
+          }
+        });
+      };
+
+      let response;
+      try {
+        response = await generateExtractorContent("gemini-3.5-flash");
+      } catch (err: any) {
+        console.warn("[Voice Extractor] Falha com gemini-3.5-flash. Tentando fallback...", err.message);
+        const fallbacks = ["gemini-flash-latest", "gemini-3.1-flash-lite"];
+        let fbSuccess = false;
+        for (const fbModel of fallbacks) {
+          try {
+            console.log(`[Voice Extractor] Tentando fallback para modelo: ${fbModel}`);
+            response = await generateExtractorContent(fbModel);
+            fbSuccess = true;
+            break;
+          } catch (fbErr: any) {
+            console.error(`[Voice Extractor] Falha também com ${fbModel}:`, fbErr.message);
           }
         }
-      });
+        if (!fbSuccess) {
+          throw err;
+        }
+      }
 
       const extractedText = response.text;
       if (!extractedText) {
