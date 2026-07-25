@@ -635,35 +635,41 @@ Sua tarefa é retornar estritamente um objeto JSON com as seguintes propriedades
 
   // Vite middleware for development
   async function setupViteAndListen() {
-    if (process.env.NODE_ENV !== "production") {
-      const { createServer: createViteServer } = await import('vite');
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa",
-      });
-      app.use(vite.middlewares);
-    } else {
-      const distPath = path.join(process.cwd(), 'dist');
-      app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
-      });
-    }
+    try {
+      if (process.env.NODE_ENV !== "production") {
+        const { createServer: createViteServer } = await import('vite');
+        const vite = await createViteServer({
+          server: { middlewareMode: true },
+          appType: "spa",
+        });
+        app.use(vite.middlewares);
+      } else {
+        const distPath = path.join(process.cwd(), 'dist');
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+      }
 
-    // Only listen and start scheduler if NOT running in serverless environment (Vercel)
-    if (!process.env.VERCEL) {
-      app.listen(PORT, "0.0.0.0", () => {
-        console.log(`Server running on http://localhost:${PORT}`);
-      });
+      // Only listen and start scheduler if NOT running in serverless environment (Vercel)
+      if (!process.env.VERCEL) {
+        app.listen(PORT, "0.0.0.0", () => {
+          console.log(`Server running on http://localhost:${PORT}`);
+        });
 
-      // Start background scheduler
-      console.log('[Push Server] Iniciando scheduler em segundo plano...');
-      setInterval(checkAndSendNotifications, 30000); // Check every 30 seconds
-    } else {
-      console.log('[Push Server] Executando em ambiente Serverless (Vercel). Escuta de porta desativada.');
+        // Start background scheduler
+        console.log('[Push Server] Iniciando scheduler em segundo plano...');
+        setInterval(checkAndSendNotifications, 30000); // Check every 30 seconds
+      } else {
+        console.log('[Push Server] Executando em ambiente Serverless (Vercel). Escuta de porta desativada.');
+      }
+    } catch (err) {
+      console.error('[Server Start Error] Erro ao inicializar o servidor Express/Vite:', err);
     }
   }
 
-  setupViteAndListen();
+  setupViteAndListen().catch((err) => {
+    console.error('[Server Start Fatal Error]', err);
+  });
 
 export default app;
