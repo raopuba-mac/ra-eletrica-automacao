@@ -15,8 +15,8 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
       className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
     >
       <div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{title}</h1>
-        {description && <p className="text-slate-500 mt-1 text-sm md:text-base">{description}</p>}
+        <h1 className="text-3xl font-extrabold text-white tracking-tight">{title}</h1>
+        {description && <p className="text-slate-400 mt-1 text-sm md:text-base">{description}</p>}
       </div>
       {action && (
         <motion.div 

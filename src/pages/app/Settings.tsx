@@ -209,48 +209,48 @@ export default function Settings() {
     <div className="max-w-2xl space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Configurações do Perfil e Site</h1>
-          <p className="text-slate-500 text-sm">Personalize os dados que aparecem na sua página pública.</p>
+          <h1 className="text-2xl font-black text-white italic tracking-tight uppercase">Configurações do Perfil e Site</h1>
+          <p className="text-slate-400 text-sm">Personalize os dados que aparecem na sua página pública.</p>
         </div>
-        <Button onClick={handleSyncData} variant="outline" className="shrink-0 font-bold uppercase tracking-widest text-[#0a0a0a] italic bg-white hover:bg-slate-50 border-slate-200">
-          <RefreshCcw className="w-4 h-4 mr-2" />
+        <Button onClick={handleSyncData} variant="outline" className="shrink-0 font-bold uppercase tracking-widest text-[#EAB308] italic bg-[#0B0F19] hover:bg-slate-800 border-slate-800">
+          <RefreshCcw className="w-4 h-4 mr-2 text-[#EAB308]" />
           Sincronizar Dados
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-xl border shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-[#1E293B] p-6 rounded-2xl border border-slate-800 shadow-xl text-white">
         <div className="space-y-4">
-          <h2 className="text-lg font-bold border-b pb-2">Informações Pessoais / Empresa</h2>
-          <div><Label>Seu Nome</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-          <div><Label>Nome da Empresa (Opcional)</Label><Input value={form.companyName} onChange={e => setForm({...form, companyName: e.target.value})} /></div>
-          <div><Label>Telefone (Contato Normal)</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
+          <h2 className="text-lg font-black border-b border-slate-800 pb-2 text-[#EAB308] uppercase italic">Informações Pessoais / Empresa</h2>
+          <div><Label className="text-xs font-bold text-slate-300">Seu Nome</Label><Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
+          <div><Label className="text-xs font-bold text-slate-300">Nome da Empresa (Opcional)</Label><Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" value={form.companyName} onChange={e => setForm({...form, companyName: e.target.value})} /></div>
+          <div><Label className="text-xs font-bold text-slate-300">Telefone (Contato Normal)</Label><Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
         </div>
 
-        <div className="space-y-4 pt-4 border-t">
-          <h2 className="text-lg font-bold border-b pb-2 text-slate-800">Apresentação Pública (Site)</h2>
+        <div className="space-y-4 pt-4 border-t border-slate-800">
+          <h2 className="text-lg font-black border-b border-slate-800 pb-2 text-[#EAB308] uppercase italic">Apresentação Pública (Site)</h2>
           <div>
-            <Label>Sobre Mim / Bio</Label>
+            <Label className="text-xs font-bold text-slate-300">Sobre Mim / Bio</Label>
             <textarea 
               value={form.bio} 
               onChange={e => setForm({...form, bio: e.target.value})} 
-              className="flex min-h-[120px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[120px] w-full rounded-xl border border-slate-800 bg-[#0B0F19] p-3 text-sm text-white placeholder:text-slate-500 focus:ring-2 focus:ring-[#EAB308] focus:outline-none"
               placeholder="Escreva um pouco sobre a sua experiência..."
             />
-            <p className="text-xs text-slate-500 mt-1">Este texto aparecerá na seção "Sobre Mim" da página inicial.</p>
+            <p className="text-xs text-slate-400 mt-1">Este texto aparecerá na seção "Sobre Mim" da página inicial.</p>
           </div>
         </div>
 
-        <div className="space-y-4 pt-4 border-t">
-          <h2 className="text-lg font-bold border-b pb-2 text-slate-800">Integração com WhatsApp</h2>
+        <div className="space-y-4 pt-4 border-t border-slate-800">
+          <h2 className="text-lg font-black border-b border-slate-800 pb-2 text-[#EAB308] uppercase italic">Integração com WhatsApp</h2>
           <div>
-            <Label>Número do WhatsApp no formato internacional (ex: 5534992609206)</Label>
-            <Input value={form.whatsappInfo} onChange={e => setForm({...form, whatsappInfo: e.target.value})} required />
-            <p className="text-xs text-slate-500 mt-1">Este número receberá as mensagens do site público.</p>
+            <Label className="text-xs font-bold text-slate-300">Número do WhatsApp no formato internacional (ex: 5534992609206)</Label>
+            <Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" value={form.whatsappInfo} onChange={e => setForm({...form, whatsappInfo: e.target.value})} required />
+            <p className="text-xs text-slate-400 mt-1">Este número receberá as mensagens do site público.</p>
           </div>
         </div>
 
         <div className="space-y-4 mt-6">
-          <Button type="submit" size="lg">Salvar Configurações</Button>
+          <Button type="submit" size="lg" className="w-full bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] font-black uppercase italic tracking-wider h-14 rounded-2xl shadow-xl">Salvar Configurações</Button>
         </div>
       </form>
 

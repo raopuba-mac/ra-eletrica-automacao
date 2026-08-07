@@ -484,17 +484,17 @@ export default function ServiceOrders() {
             <Dialog open={isPdfSelectOpen} onOpenChange={setIsPdfSelectOpen}>
               <DialogTrigger
                 render={
-                  <Button variant="outline" className="h-14 px-6 font-bold uppercase tracking-widest text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl shadow-sm italic transition-all">
-                    <Printer className="w-5 h-5 mr-3 text-slate-500" /> Gerar PDF da OS
+                  <Button variant="outline" className="h-14 px-6 font-bold uppercase tracking-widest text-slate-200 bg-[#1E293B] border border-slate-800 hover:bg-[#283548] rounded-2xl shadow-sm italic transition-all">
+                    <Printer className="w-5 h-5 mr-3 text-[#EAB308]" /> Gerar PDF da OS
                   </Button>
                 }
               />
-              <DialogContent className="p-8 rounded-[2.5rem] bg-white sm:max-w-md border-white/5 shadow-2xl">
+              <DialogContent className="p-8 rounded-[2.5rem] bg-[#1E293B] sm:max-w-md border-slate-800 shadow-2xl text-white">
                 <DialogHeader className="mb-4">
-                  <DialogTitle className="text-2xl font-black italic tracking-tighter uppercase text-slate-900 flex items-center gap-3">
-                    <Printer className="w-6 h-6 text-primary" /> Relatório PDF de OS
+                  <DialogTitle className="text-2xl font-black italic tracking-tighter uppercase text-white flex items-center gap-3">
+                    <Printer className="w-6 h-6 text-[#EAB308]" /> Relatório PDF de OS
                   </DialogTitle>
-                  <DialogDescription className="text-slate-500 font-medium">
+                  <DialogDescription className="text-slate-400 font-medium">
                     Selecione uma ordem de serviço registrada para gerar um documento PDF técnico de alta fidelidade com fotos de antes e depois.
                   </DialogDescription>
                 </DialogHeader>
@@ -505,12 +505,12 @@ export default function ServiceOrders() {
                       onValueChange={setSelectedOrderForPdf}
                       value={selectedOrderForPdf}
                     >
-                      <SelectTrigger className="h-14 border-slate-200 bg-slate-50 rounded-2xl focus:ring-primary w-full text-left font-semibold text-slate-800">
+                      <SelectTrigger className="h-14 border-slate-800 bg-[#0B0F19] rounded-2xl focus:ring-[#EAB308] w-full text-left font-semibold text-white">
                         <SelectValue placeholder="Escolha uma OS..." />
                       </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-slate-100 p-2 max-h-[250px] overflow-y-auto">
+                      <SelectContent className="rounded-2xl border-slate-800 bg-[#1E293B] text-white p-2 max-h-[250px] overflow-y-auto">
                         {orders.map(order => (
-                          <SelectItem key={order.id} value={order.id} className="rounded-xl focus:bg-primary focus:text-white py-3">
+                          <SelectItem key={order.id} value={order.id} className="rounded-xl focus:bg-[#EAB308] focus:text-[#0B0F19] py-3">
                             {getClientName(order.clientId)} - {order.scheduledDate ? new Date(order.scheduledDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem data'} ({order.id.slice(0, 5).toUpperCase()})
                           </SelectItem>
                         ))}
@@ -528,7 +528,7 @@ export default function ServiceOrders() {
                       generatePdf(order);
                       setIsPdfSelectOpen(false);
                     }}
-                    className="w-full h-14 bg-primary text-white font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/20 italic"
+                    className="w-full h-14 bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] font-black uppercase text-xs tracking-[0.2em] rounded-2xl shadow-xl shadow-[#EAB308]/20 italic"
                   >
                     Gerar e Imprimir PDF
                   </Button>
@@ -542,41 +542,41 @@ export default function ServiceOrders() {
             }}>
               <DialogTrigger
                 render={
-                  <Button onClick={openCreate} className="h-14 px-8 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-2xl shadow-primary/20 italic">
+                  <Button onClick={openCreate} className="h-14 px-8 font-black uppercase tracking-widest bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] rounded-2xl shadow-2xl shadow-[#EAB308]/20 italic">
                     <Plus className="w-5 h-5 mr-3" /> Abrir Chamado
                   </Button>
                 }
               />
-              <DialogContent className="max-h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-white/5 bg-white sm:max-w-xl">
-                 <div className="bg-slate-950 p-8 text-white relative">
+              <DialogContent className="max-h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-slate-800 bg-[#1E293B] text-white sm:max-w-xl">
+                 <div className="bg-[#0B0F19] p-8 text-white relative border-b border-slate-800">
                     <div className="absolute inset-0 bg-dot-pattern opacity-10"></div>
                     <div className="relative z-10 space-y-2">
-                       <div className="text-[10px] font-black text-primary tracking-[0.4em] uppercase">Documentação Técnica</div>
-                       <h2 className="text-3xl font-black italic tracking-tighter uppercase">{editingOrder ? 'Ajustar OS' : 'Protocolar OS'}</h2>
+                       <div className="text-[10px] font-black text-[#EAB308] tracking-[0.4em] uppercase">Documentação Técnica</div>
+                       <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">{editingOrder ? 'Ajustar OS' : 'Protocolar OS'}</h2>
                     </div>
                  </div>
                  
-                 <form onSubmit={handleSubmit} className="p-8 space-y-8 overflow-y-auto max-h-[calc(85vh-120px)] custom-scrollbar">
+                 <form onSubmit={handleSubmit} className="p-8 space-y-8 overflow-y-auto max-h-[calc(85vh-120px)] custom-scrollbar bg-[#1E293B]">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cliente Solicitante *</Label>
+                        <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Cliente Solicitante *</Label>
                         <Select onValueChange={(val) => setForm({...form, clientId: val})} value={form.clientId} required>
-                          <SelectTrigger className="h-14 border-slate-100 bg-slate-50 rounded-2xl focus:ring-primary">
+                          <SelectTrigger className="h-14 border-slate-800 bg-[#0B0F19] text-white rounded-2xl focus:ring-[#EAB308]">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-slate-100 p-2">
+                          <SelectContent className="rounded-2xl border-slate-800 bg-[#1E293B] text-white p-2">
                             {clients.map(c => (
-                              <SelectItem key={c.id} value={c.id} className="rounded-xl focus:bg-primary focus:text-white py-3">{c.name}</SelectItem>
+                              <SelectItem key={c.id} value={c.id} className="rounded-xl focus:bg-[#EAB308] focus:text-[#0B0F19] py-3">{c.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
                       
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Status Operacional</Label>
+                        <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Status Operacional</Label>
                         <Select onValueChange={(val: any) => setForm({...form, status: val})} value={form.status}>
-                          <SelectTrigger className="h-14 border-slate-100 bg-slate-50 rounded-2xl focus:ring-primary"><SelectValue /></SelectTrigger>
-                          <SelectContent className="rounded-2xl border-slate-100 p-2">
+                          <SelectTrigger className="h-14 border-slate-800 bg-[#0B0F19] text-white rounded-2xl focus:ring-[#EAB308]"><SelectValue /></SelectTrigger>
+                          <SelectContent className="rounded-2xl border-slate-800 bg-[#1E293B] text-white p-2">
                             <SelectItem value="scheduled" className="rounded-xl focus:bg-amber-500 focus:text-white py-3">Agendado</SelectItem>
                             <SelectItem value="in_progress" className="rounded-xl focus:bg-blue-500 focus:text-white py-3">Em Andamento</SelectItem>
                             <SelectItem value="completed" className="rounded-xl focus:bg-emerald-500 focus:text-white py-3">Concluído</SelectItem>
@@ -588,18 +588,18 @@ export default function ServiceOrders() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Data Agendada</Label>
+                    <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Data Agendada</Label>
                     <Input 
-                      className="h-14 border-slate-100 bg-slate-50 rounded-2xl"
+                      className="h-14 border-slate-800 bg-[#0B0F19] text-white rounded-2xl"
                       type="date" 
                       value={form.scheduledDate} 
                       onChange={e => setForm({...form, scheduledDate: e.target.value})} 
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Janela de Horário</Label>
+                    <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Janela de Horário</Label>
                     <Input 
-                      className="h-14 border-slate-100 bg-slate-50 rounded-2xl"
+                      className="h-14 border-slate-800 bg-[#0B0F19] text-white rounded-2xl"
                       type="time" 
                       value={form.scheduledTime} 
                       onChange={e => setForm({...form, scheduledTime: e.target.value})} 
@@ -608,9 +608,9 @@ export default function ServiceOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Memorial Descritivo / Defeito *</Label>
+                  <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Memorial Descritivo / Defeito *</Label>
                   <Textarea 
-                    className="min-h-[120px] border-slate-100 bg-slate-50 rounded-2xl p-4 focus:ring-primary resize-none italic font-medium"
+                    className="min-h-[120px] border-slate-800 bg-[#0B0F19] text-white rounded-2xl p-4 focus:ring-[#EAB308] resize-none italic font-medium placeholder:text-slate-500"
                     value={form.description} 
                     onChange={e => setForm({...form, description: e.target.value})} 
                     placeholder="Descreva o serviço a ser realizado ou o problema relatado..."
@@ -619,7 +619,7 @@ export default function ServiceOrders() {
                 </div>
 
                 <div className="space-y-4">
-                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 italic">Evidências (Antes)</Label>
+                  <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1 italic">Evidências (Antes)</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div 
                       onDragEnter={handleDragBefore}
@@ -628,11 +628,11 @@ export default function ServiceOrders() {
                       onDrop={handleDropBefore}
                       className={cn(
                         "relative border-4 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center group transition-all cursor-pointer",
-                        isDraggingBefore ? "border-primary bg-primary/5 scale-[1.02] shadow-xl" : "border-slate-100 bg-slate-50 hover:border-primary/50"
+                        isDraggingBefore ? "border-[#EAB308] bg-[#EAB308]/10 scale-[1.02] shadow-xl" : "border-slate-800 bg-[#0B0F19] hover:border-[#EAB308]/50"
                       )}
                     >
-                      <Camera className={cn("w-10 h-10 mb-4 transition-all duration-300", isDraggingBefore ? "text-primary scale-110" : "text-slate-200 group-hover:text-primary group-hover:scale-110")} />
-                      <span className={cn("text-[10px] font-black uppercase tracking-widest transition-all duration-300", isDraggingBefore ? "text-primary font-black" : "text-slate-400 group-hover:text-primary")}>Arraste ou Clique</span>
+                      <Camera className={cn("w-10 h-10 mb-4 transition-all duration-300", isDraggingBefore ? "text-[#EAB308] scale-110" : "text-slate-600 group-hover:text-[#EAB308] group-hover:scale-110")} />
+                      <span className={cn("text-[10px] font-black uppercase tracking-widest transition-all duration-300", isDraggingBefore ? "text-[#EAB308] font-black" : "text-slate-400 group-hover:text-[#EAB308]")}>Arraste ou Clique</span>
                       <input 
                         type="file" 
                         accept="image/*,video/*" 
@@ -644,7 +644,7 @@ export default function ServiceOrders() {
                     
                     <div className="grid grid-cols-2 gap-2">
                       {attachments.map((file, idx) => (
-                        <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-100 shadow-sm shadow-slate-100">
+                        <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-800 shadow-sm">
                           {file.startsWith('data:video/') ? (
                             <embed src={file} className="w-full h-full object-cover" />
                           ) : (
@@ -667,14 +667,14 @@ export default function ServiceOrders() {
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-8 pt-8 border-t border-slate-100"
+                    className="space-y-8 pt-8 border-t border-slate-800"
                   >
                     <div className="space-y-2">
-                       <Label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest pl-1 italic">Valor da Entrega (Investimento Final)</Label>
+                       <Label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest pl-1 italic">Valor da Entrega (Investimento Final)</Label>
                        <div className="relative">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-emerald-600 italic">R$</div>
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-emerald-400 italic">R$</div>
                           <Input 
-                             className="h-14 pl-12 border-emerald-100 bg-emerald-50/50 rounded-2xl focus:ring-emerald-500 font-black text-xl text-emerald-900"
+                             className="h-14 pl-12 border-emerald-900/50 bg-[#0B0F19] rounded-2xl focus:ring-emerald-500 font-black text-xl text-emerald-400"
                              type="number" 
                              step="0.01"
                              value={form.finalPrice} 
@@ -684,7 +684,7 @@ export default function ServiceOrders() {
                     </div>
 
                     <div className="space-y-4">
-                      <Label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest pl-1 italic">Evidências Finais (Depois)</Label>
+                      <Label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest pl-1 italic">Evidências Finais (Depois)</Label>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div 
                           onDragEnter={handleDragAfter}
@@ -693,11 +693,11 @@ export default function ServiceOrders() {
                           onDrop={handleDropAfter}
                           className={cn(
                             "relative border-4 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center group transition-all cursor-pointer",
-                            isDraggingAfter ? "border-emerald-500 bg-emerald-500/5 scale-[1.02] shadow-xl" : "border-emerald-100 bg-emerald-50 hover:border-emerald-400"
+                            isDraggingAfter ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] shadow-xl" : "border-slate-800 bg-[#0B0F19] hover:border-emerald-500/50"
                           )}
                         >
-                          <Camera className={cn("w-10 h-10 mb-4 transition-all duration-300", isDraggingAfter ? "text-emerald-500 scale-110" : "text-emerald-200 group-hover:text-emerald-500 group-hover:scale-110")} />
-                          <span className={cn("text-[10px] font-black uppercase tracking-widest transition-all duration-300", isDraggingAfter ? "text-emerald-600 font-black" : "text-emerald-400 group-hover:text-emerald-500")}>Arraste ou Clique</span>
+                          <Camera className={cn("w-10 h-10 mb-4 transition-all duration-300", isDraggingAfter ? "text-emerald-400 scale-110" : "text-slate-600 group-hover:text-emerald-400 group-hover:scale-110")} />
+                          <span className={cn("text-[10px] font-black uppercase tracking-widest transition-all duration-300", isDraggingAfter ? "text-emerald-400 font-black" : "text-slate-400 group-hover:text-emerald-400")}>Arraste ou Clique</span>
                           <input 
                             type="file" 
                             accept="image/*,video/*" 
@@ -709,7 +709,7 @@ export default function ServiceOrders() {
                         
                         <div className="grid grid-cols-2 gap-2">
                           {attachmentsAfter.map((file, idx) => (
-                            <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-emerald-100 shadow-sm shadow-emerald-100">
+                            <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-800 shadow-sm">
                               {file.startsWith('data:video/') ? (
                                 <embed src={file} className="w-full h-full object-cover" />
                               ) : (
@@ -730,7 +730,7 @@ export default function ServiceOrders() {
                   </motion.div>
                 )}
 
-                <Button type="submit" size="lg" className="w-full font-black italic uppercase italic h-16 rounded-3xl shadow-2xl shadow-primary/20 tracking-tighter text-lg bg-primary hover:bg-primary/90 text-white transition-all hover:scale-[1.01]">
+                <Button type="submit" size="lg" className="w-full font-black italic uppercase h-16 rounded-3xl shadow-2xl shadow-[#EAB308]/20 tracking-tighter text-lg bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] transition-all hover:scale-[1.01]">
                   {editingOrder ? 'Salvar Certificação' : 'Protocolar Chamado'}
                 </Button>
              </form>

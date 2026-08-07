@@ -772,18 +772,17 @@ export default function Quotes() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger
             render={
-              <Button onClick={openCreate} className="h-14 px-8 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-2xl shadow-primary/20 italic">
+              <Button onClick={openCreate} className="h-14 px-8 font-black uppercase tracking-widest bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] rounded-2xl shadow-xl shadow-[#EAB308]/20 italic">
                  <Plus className="w-5 h-5 mr-3" /> Nova Proposta
               </Button>
             }
           />
-          <DialogContent className={`max-h-[95vh] p-0 overflow-hidden rounded-[2.5rem] border-white/5 bg-white flex flex-col transition-all duration-300 ${
+          <DialogContent className={`max-h-[95vh] p-0 overflow-hidden rounded-[2.5rem] border-slate-800 bg-[#1E293B] text-white flex flex-col transition-all duration-300 ${
             isCalculatorActive ? 'sm:max-w-5xl' : 'sm:max-w-xl'
           }`}>
-             <div className="bg-slate-950 p-6 text-white relative flex-shrink-0 flex items-center justify-between">
-                <div className="absolute inset-0 bg-dot-pattern opacity-10"></div>
+             <div className="bg-[#0B0F19] p-6 text-white relative flex-shrink-0 flex items-center justify-between border-b border-slate-800">
                 <div className="relative z-10 space-y-1">
-                   <div className="text-[10px] font-black text-primary tracking-[0.4em] uppercase">Documento Comercial</div>
+                   <div className="text-[10px] font-black text-[#EAB308] tracking-[0.4em] uppercase">Documento Comercial</div>
                    <h2 className="text-2xl font-black italic tracking-tighter uppercase">{editingQuote ? 'Ajustar Proposta' : 'Emitir Orçamento'}</h2>
                 </div>
                 <div className="relative z-10">
@@ -793,31 +792,31 @@ export default function Quotes() {
                      onClick={() => setIsCalculatorActive(!isCalculatorActive)}
                      className={`font-black text-[10px] uppercase tracking-widest h-10 px-4 rounded-xl transition-all border-dashed ${
                        isCalculatorActive 
-                         ? 'bg-primary/20 border-primary text-primary hover:bg-primary/30' 
+                         ? 'bg-[#EAB308]/20 border-[#EAB308] text-[#EAB308] hover:bg-[#EAB308]/30' 
                          : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
                      }`}
                    >
-                     <Zap className="w-3.5 h-3.5 mr-2 animate-pulse fill-current" />
+                     <Zap className="w-3.5 h-3.5 mr-2 animate-pulse fill-current text-[#EAB308]" />
                      {isCalculatorActive ? 'Fechar Calculadora' : 'Calculadora de Pontos'}
                    </Button>
                 </div>
              </div>
              
-             <form onSubmit={handleSubmit} className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 bg-white">
+             <form onSubmit={handleSubmit} className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 bg-[#1E293B]">
                 {/* Left Side: Standard Form */}
-                <div className={`flex-1 overflow-y-auto p-6 space-y-6 flex flex-col ${isCalculatorActive ? 'md:border-r border-slate-100 md:max-w-[50%]' : ''}`}>
+                <div className={`flex-1 overflow-y-auto p-6 space-y-6 flex flex-col ${isCalculatorActive ? 'md:border-r border-slate-800 md:max-w-[50%]' : ''}`}>
                    <div className="space-y-6 flex-1">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cliente Solicitante *</Label>
                         <Select onValueChange={(val) => setForm({...form, clientId: val})} value={form.clientId} required>
-                          <SelectTrigger className="h-14 border-slate-100 bg-slate-50 rounded-2xl focus:ring-primary w-full">
+                          <SelectTrigger className="h-14 border-slate-800 bg-[#0B0F19] text-white rounded-2xl focus:ring-[#EAB308] w-full">
                             <div className="flex-1 text-left font-semibold">
                               {clients.find(c => c.id === form.clientId)?.name || <SelectValue placeholder="Selecione..." />}
                             </div>
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-slate-100 p-2">
+                          <SelectContent className="rounded-2xl border-slate-800 bg-[#0B0F19] text-white p-2">
                             {clients.map(c => (
-                              <SelectItem key={c.id} value={c.id} className="rounded-xl focus:bg-primary focus:text-white py-3">{c.name}</SelectItem>
+                              <SelectItem key={c.id} value={c.id} className="rounded-xl focus:bg-[#EAB308] focus:text-[#0B0F19] py-3">{c.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1327,22 +1326,22 @@ export default function Quotes() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
-              className="group bg-white rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 hover:border-slate-200 transition-all flex flex-col relative"
+              className="group bg-[#1E293B] rounded-[2.5rem] shadow-xl border border-slate-800 hover:border-[#EAB308]/40 transition-all flex flex-col relative"
             >
               <div className="p-6 sm:p-8 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-8">
-                  <div className="h-14 w-14 bg-slate-50 border border-slate-100 text-slate-300 rounded-[1.25rem] flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-500 shrink-0">
+                  <div className="h-14 w-14 bg-[#0B0F19] border border-slate-800 text-[#EAB308] rounded-[1.25rem] flex items-center justify-center shrink-0">
                      <FileText className="w-6 h-6" />
                   </div>
                   <div className="ml-2 text-right">
-                    {q.status === 'pending' && <span className="bg-amber-100 text-amber-700 text-[9px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest italic shadow-sm shadow-amber-100 inline-block">Pendente</span>}
-                    {q.status === 'approved' && <span className="bg-emerald-100 text-emerald-700 text-[9px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest italic shadow-sm shadow-emerald-100 inline-block">Aprovado</span>}
-                    {q.status === 'rejected' && <span className="bg-rose-100 text-rose-700 text-[9px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest italic shadow-sm shadow-rose-100 inline-block">Recusado</span>}
+                    {q.status === 'pending' && <span className="bg-amber-950/80 text-amber-400 border border-amber-800 text-[9px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest italic shadow-sm inline-block">Pendente</span>}
+                    {q.status === 'approved' && <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-800 text-[9px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest italic shadow-sm inline-block">Aprovado</span>}
+                    {q.status === 'rejected' && <span className="bg-rose-950/80 text-rose-400 border border-rose-800 text-[9px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest italic shadow-sm inline-block">Recusado</span>}
                   </div>
                 </div>
                 
-                <h3 className="font-black text-slate-900 text-2xl mb-2 tracking-tighter uppercase italic leading-none group-hover:text-primary transition-colors">{q.clientName}</h3>
-                <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-6">Protocolo: {q.id.slice(0, 8).toUpperCase()}</div>
+                <h3 className="font-black text-white text-2xl mb-2 tracking-tighter uppercase italic leading-none group-hover:text-[#EAB308] transition-colors">{q.clientName}</h3>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Protocolo: {q.id.slice(0, 8).toUpperCase()}</div>
                 
                 {(() => {
                   const isJson = q.description && (q.description.startsWith('{') || q.description.startsWith('['));
@@ -1355,17 +1354,17 @@ export default function Quotes() {
 
                   return isJson ? (
                     <div className="space-y-4 flex-1 mb-6">
-                      <div className="bg-slate-50/60 rounded-3xl p-5 border border-slate-100 space-y-3">
+                      <div className="bg-[#0B0F19] rounded-3xl p-5 border border-slate-800 space-y-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Serviços Inclusos:</span>
                         <div className="space-y-2">
                           {parsed.items?.map((it: any, i: number) => (
-                            <div key={i} className="flex justify-between items-start text-xs text-slate-700 border-b border-slate-100/60 pb-1.5 last:border-0 last:pb-0">
+                            <div key={i} className="flex justify-between items-start text-xs text-slate-200 border-b border-slate-800/80 pb-1.5 last:border-0 last:pb-0">
                               <div className="flex-1 pr-2">
-                                <span className="font-bold text-slate-900">{it.name}</span>
+                                <span className="font-bold text-white">{it.name}</span>
                                 {it.quantity > 1 && <span className="text-[10px] text-slate-400 font-mono ml-2">x{it.quantity}</span>}
                               </div>
                               {!parsed.hideDetailedPrices && (
-                                <span className="font-bold text-slate-900 shrink-0 font-mono">
+                                <span className="font-bold text-[#EAB308] shrink-0 font-mono">
                                   R$ {Number(it.price * (it.quantity || 1)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
                               )}
@@ -1373,25 +1372,25 @@ export default function Quotes() {
                           ))}
                         </div>
                         {parsed.includesMaterial && (
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-primary mt-1 border-t border-slate-100/60 pt-2">
+                          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-[#EAB308] mt-1 border-t border-slate-800/80 pt-2">
                             <span>Material Incluso</span>
                             <span>Sim</span>
                           </div>
                         )}
                         {parsed.applyCashDiscount && (
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-emerald-600 mt-1 border-t border-slate-100/60 pt-2">
+                          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-emerald-400 mt-1 border-t border-slate-800/80 pt-2">
                             <span>Desc. 15% à Vista</span>
                             <span>Ativo</span>
                           </div>
                         )}
                         {parsed.discount > 0 && !parsed.hideDetailedPrices && (
-                          <div className="flex justify-between items-center text-xs border-t border-slate-100/60 pt-2 text-rose-500 font-bold">
+                          <div className="flex justify-between items-center text-xs border-t border-slate-800/80 pt-2 text-rose-400 font-bold">
                             <span>Desconto Aplicado</span>
                             <span>- R$ {Number(parsed.discount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                           </div>
                         )}
                         {parsed.remarks && (
-                          <div className="mt-2.5 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 italic leading-relaxed">
+                          <div className="mt-2.5 pt-2.5 border-t border-slate-800 text-[11px] text-slate-300 italic leading-relaxed">
                             <span className="font-black not-italic text-[9px] uppercase tracking-wider text-slate-400 block mb-0.5">Observações:</span>
                             {parsed.remarks}
                           </div>
@@ -1406,7 +1405,7 @@ export default function Quotes() {
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Fotos Relacionadas:</span>
                             <div className="grid grid-cols-2 gap-2">
                               {quotePhotos.map((pUrl: string, pIdx: number) => (
-                                <div key={pIdx} className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm aspect-video bg-slate-50 relative group/pic">
+                                <div key={pIdx} className="rounded-2xl overflow-hidden border border-slate-800 shadow-sm aspect-video bg-[#0B0F19] relative group/pic">
                                   <img src={pUrl} alt={`Foto ${pIdx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 </div>
                               ))}
@@ -1416,32 +1415,31 @@ export default function Quotes() {
                       })()}
                     </div>
                   ) : (
-                    <div className="flex-1 bg-slate-50/50 p-6 rounded-3xl border border-slate-50 mb-8">
-                       <p className="text-sm text-slate-600 font-medium italic leading-relaxed line-clamp-4">{q.description}</p>
+                    <div className="flex-1 bg-[#0B0F19] p-6 rounded-3xl border border-slate-800 mb-8">
+                       <p className="text-sm text-slate-300 font-medium italic leading-relaxed line-clamp-4">{q.description}</p>
                     </div>
                   );
                 })()}
                 
-                <div className="flex items-center justify-between p-6 bg-slate-900 rounded-[1.5rem] text-white relative overflow-hidden group/price">
-                   <div className="absolute inset-0 bg-dot-pattern opacity-10"></div>
+                <div className="flex items-center justify-between p-6 bg-[#0B0F19] border border-slate-800 rounded-[1.5rem] text-white relative overflow-hidden group/price">
                    <div>
-                      <div className="text-[8px] font-black uppercase tracking-[0.3em] text-primary mb-1">Investimento Est.</div>
-                      <div className="text-2xl font-black italic tracking-tighter">
+                      <div className="text-[8px] font-black uppercase tracking-[0.3em] text-[#EAB308] mb-1">Investimento Est.</div>
+                      <div className="text-2xl font-black italic tracking-tighter text-[#EAB308]">
                          R$ {Number(q.totalAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </div>
                    </div>
-                   <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-primary backdrop-blur-sm">
+                   <div className="w-10 h-10 rounded-xl bg-[#EAB308]/10 flex items-center justify-center text-[#EAB308] border border-[#EAB308]/20">
                       <Zap className="w-5 h-5 fill-current" />
                    </div>
                 </div>
 
-                <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 pt-6 mt-4 border-t border-slate-50">
+                <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 pt-6 mt-4 border-t border-slate-800">
                    {q.status === 'pending' ? (
                      <div className="flex gap-2 flex-1 min-w-[180px]">
                        <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="flex-1 shrink-0 font-black text-[10px] sm:text-xs xl:text-[10px] uppercase tracking-widest h-11 bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white rounded-2xl transition-all" 
+                        className="flex-1 shrink-0 font-black text-[10px] sm:text-xs xl:text-[10px] uppercase tracking-widest h-11 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 hover:bg-emerald-600 hover:text-white rounded-2xl transition-all" 
                         onClick={() => updateStatus(q.id, 'approved')}
                        >
                          <CheckCircle className="w-4 h-4 mr-1 sm:mr-2"/> Aprovar
@@ -1449,7 +1447,7 @@ export default function Quotes() {
                        <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="flex-1 shrink-0 font-black text-[10px] sm:text-xs xl:text-[10px] uppercase tracking-widest h-11 bg-rose-50 text-rose-700 hover:bg-rose-500 hover:text-white rounded-2xl transition-all" 
+                        className="flex-1 shrink-0 font-black text-[10px] sm:text-xs xl:text-[10px] uppercase tracking-widest h-11 bg-rose-950/80 text-rose-400 border border-rose-800/80 hover:bg-rose-600 hover:text-white rounded-2xl transition-all" 
                         onClick={() => updateStatus(q.id, 'rejected')}
                        >
                          <XCircle className="w-4 h-4 mr-1 sm:mr-2"/> Recusar
@@ -1459,7 +1457,7 @@ export default function Quotes() {
                      <Button 
                       variant="outline" 
                       size="sm" 
-                      className="flex-1 shrink-0 min-w-[180px] font-black text-[10px] sm:text-xs xl:text-[10px] uppercase tracking-widest h-11 text-slate-400 border-slate-100 hover:bg-slate-50 rounded-2xl"
+                      className="flex-1 shrink-0 min-w-[180px] font-black text-[10px] sm:text-xs xl:text-[10px] uppercase tracking-widest h-11 text-slate-300 border-slate-800 bg-[#0B0F19] hover:bg-slate-800 rounded-2xl"
                       onClick={() => updateStatus(q.id, 'pending')}
                      >
                        Reabrir Proposta
@@ -1472,7 +1470,7 @@ export default function Quotes() {
                         size="icon" 
                         title="Baixar PDF e Enviar WhatsApp"
                         onClick={() => shareWhatsApp(q)} 
-                        className="h-11 w-11 shrink-0 bg-[#25D366] hover:bg-[#1DA851] text-white rounded-2xl shadow-xl shadow-green-500/20 flex flex-col items-center justify-center gap-0.5"
+                        className="h-11 w-11 shrink-0 bg-[#25D366] hover:bg-[#1DA851] text-white rounded-2xl shadow-xl flex flex-col items-center justify-center"
                       >
                         <Download className="w-4 h-4" />
                       </Button>
@@ -1481,7 +1479,7 @@ export default function Quotes() {
                         variant="ghost" 
                         size="icon" 
                         onClick={() => openEdit(q)} 
-                        className="h-11 w-11 shrink-0 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-2xl"
+                        className="h-11 w-11 shrink-0 bg-[#0B0F19] text-slate-300 hover:text-white border border-slate-800 rounded-2xl"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -1490,7 +1488,7 @@ export default function Quotes() {
                         variant="ghost" 
                         size="icon" 
                         onClick={() => handleDelete(q.id)} 
-                        className="h-11 w-11 shrink-0 hover:bg-rose-50 text-slate-200 hover:text-rose-600 rounded-2xl"
+                        className="h-11 w-11 shrink-0 bg-[#0B0F19] hover:bg-rose-950/80 text-slate-300 hover:text-rose-400 border border-slate-800 rounded-2xl"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -1501,11 +1499,11 @@ export default function Quotes() {
           ))}
         </AnimatePresence>
         {quotes.length === 0 && !loading && (
-          <div className="col-span-full py-40 text-center bg-slate-50 border-4 border-dashed rounded-[3rem] border-slate-100 space-y-4">
-             <div className="p-6 bg-white rounded-3xl shadow-xl shadow-slate-200 inline-block mb-4">
-                <FileText className="w-12 h-12 text-slate-200 opacity-50" />
+          <div className="col-span-full py-40 text-center bg-[#1E293B] border-4 border-dashed rounded-[3rem] border-slate-800 space-y-4">
+             <div className="p-6 bg-[#0B0F19] border border-slate-800 rounded-3xl shadow-xl inline-block mb-4">
+                <FileText className="w-12 h-12 text-[#EAB308] opacity-80" />
              </div>
-             <h3 className="text-slate-900 font-black text-2xl tracking-tighter uppercase italic">Fluxo Comercial Vazio</h3>
+             <h3 className="text-white font-black text-2xl tracking-tighter uppercase italic">Fluxo Comercial Vazio</h3>
              <p className="text-slate-400 text-sm font-medium italic max-w-xs mx-auto leading-relaxed">Desenvolva suas propostas técnicas aqui para impressionar seus clientes.</p>
           </div>
         )}

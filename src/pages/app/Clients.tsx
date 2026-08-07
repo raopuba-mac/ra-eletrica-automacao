@@ -50,18 +50,18 @@ function ClientHistory({ clientId, userId }: { clientId: string, userId: string 
     <div className="pt-6 space-y-6">
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <History className="w-3.5 h-3.5 text-blue-500" />
+          <History className="w-3.5 h-3.5 text-[#EAB308]" />
           <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Orçamentos</h4>
         </div>
         {quotes.length > 0 ? (
           <div className="space-y-2">
             {quotes.map(q => (
-              <div key={q.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <div key={q.id} className="p-3 bg-[#0B0F19] border border-slate-800 rounded-xl">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-[11px] font-bold text-slate-900 truncate flex-1 mr-2">{q.description}</span>
+                  <span className="text-[11px] font-bold text-white truncate flex-1 mr-2">{q.description}</span>
                   <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                    q.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 
-                    q.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                    q.status === 'approved' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 
+                    q.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' : 'bg-amber-950 text-amber-400 border border-amber-800'
                   }`}>
                     R$ {Number(q.totalAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
@@ -73,8 +73,8 @@ function ClientHistory({ clientId, userId }: { clientId: string, userId: string 
             ))}
           </div>
         ) : (
-          <div className="p-4 rounded-xl border border-dashed border-slate-100 flex flex-col items-center justify-center bg-slate-50/50">
-            <FileText className="w-6 h-6 text-slate-200 mb-1" />
+          <div className="p-4 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center bg-[#0B0F19]">
+            <FileText className="w-6 h-6 text-slate-600 mb-1" />
             <p className="text-[10px] text-slate-400 font-medium">Nenhum orçamento.</p>
           </div>
         )}
@@ -82,18 +82,18 @@ function ClientHistory({ clientId, userId }: { clientId: string, userId: string 
 
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-3.5 h-3.5 text-blue-500" />
+          <Zap className="w-3.5 h-3.5 text-[#EAB308]" />
           <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ordens de Serviço</h4>
         </div>
         {orders.length > 0 ? (
           <div className="space-y-2">
             {orders.map(o => (
-              <div key={o.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <div key={o.id} className="p-3 bg-[#0B0F19] border border-slate-800 rounded-xl">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-[11px] font-bold text-slate-900 truncate flex-1 mr-2">{o.description}</span>
+                  <span className="text-[11px] font-bold text-white truncate flex-1 mr-2">{o.description}</span>
                   <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                    o.status === 'completed' ? 'bg-blue-100 text-blue-700' : 
-                    o.status === 'in_progress' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'
+                    o.status === 'completed' ? 'bg-blue-950 text-blue-400 border border-blue-800' : 
+                    o.status === 'in_progress' ? 'bg-indigo-950 text-indigo-400 border border-indigo-800' : 'bg-amber-950 text-amber-400 border border-amber-800'
                   }`}>
                     {o.status === 'completed' ? 'Concluído' : o.status === 'in_progress' ? 'Em Andamento' : 'Agendado'}
                   </span>
@@ -105,8 +105,8 @@ function ClientHistory({ clientId, userId }: { clientId: string, userId: string 
             ))}
           </div>
         ) : (
-          <div className="p-4 rounded-xl border border-dashed border-slate-100 flex flex-col items-center justify-center bg-slate-50/50">
-            <Zap className="w-6 h-6 text-slate-200 mb-1" />
+          <div className="p-4 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center bg-[#0B0F19]">
+            <Zap className="w-6 h-6 text-slate-600 mb-1" />
             <p className="text-[10px] text-slate-400 font-medium">Nenhuma OS.</p>
           </div>
         )}
@@ -213,17 +213,17 @@ export default function Clients() {
           <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger 
               render={
-                <Button size="lg" className="shadow-lg shadow-blue-600/20"><Plus className="w-4 h-4 mr-2" /> Novo Cliente</Button>
+                <Button size="lg" className="bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] font-black uppercase tracking-widest text-xs h-14 px-6 rounded-2xl shadow-xl shadow-[#EAB308]/20 italic"><Plus className="w-5 h-5 mr-2" /> Novo Cliente</Button>
               }
             />
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader><DialogTitle className="text-2xl font-bold">{editingId ? 'Editar Cliente' : 'Cadastrar Cliente'}</DialogTitle></DialogHeader>
+            <DialogContent className="sm:max-w-[425px] bg-[#1E293B] border-slate-800 text-white rounded-[2rem]">
+              <DialogHeader><DialogTitle className="text-2xl font-black italic tracking-tighter uppercase text-white">{editingId ? 'Editar Cliente' : 'Cadastrar Cliente'}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-                <div className="space-y-2"><Label className="text-sm font-bold">Nome Completo *</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Ex: João Silva" required /></div>
-                <div className="space-y-2"><Label className="text-sm font-bold">Telefone</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(00) 00000-0000" /></div>
-                <div className="space-y-2"><Label className="text-sm font-bold">E-mail</Label><Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="joao@email.com" /></div>
-                <div className="space-y-2"><Label className="text-sm font-bold">Endereço</Label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Rua, Número, Bairro, Cidade" /></div>
-                <Button type="submit" size="lg" className="w-full mt-4 font-bold">{editingId ? 'Salvar Alterações' : 'Cadastrar Cliente'}</Button>
+                <div className="space-y-2"><Label className="text-xs font-bold text-slate-300">Nome Completo *</Label><Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Ex: João Silva" required /></div>
+                <div className="space-y-2"><Label className="text-xs font-bold text-slate-300">Telefone</Label><Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(00) 00000-0000" /></div>
+                <div className="space-y-2"><Label className="text-xs font-bold text-slate-300">E-mail</Label><Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="joao@email.com" /></div>
+                <div className="space-y-2"><Label className="text-xs font-bold text-slate-300">Endereço</Label><Input className="h-12 bg-[#0B0F19] border-slate-800 text-white rounded-xl focus:ring-[#EAB308]" value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Rua, Número, Bairro, Cidade" /></div>
+                <Button type="submit" size="lg" className="w-full mt-4 font-black uppercase italic tracking-wider h-14 bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] rounded-2xl">{editingId ? 'Salvar Alterações' : 'Cadastrar Cliente'}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -231,9 +231,9 @@ export default function Clients() {
       />
 
       <div className="mb-6 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <Input 
-          className="pl-10 h-12 bg-white border-slate-100 rounded-xl"
+          className="pl-11 h-14 bg-[#1E293B] border-slate-800 text-white rounded-2xl placeholder:text-slate-500 focus:ring-[#EAB308]"
           placeholder="Pesquisar por nome, telefone ou e-mail..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
@@ -250,18 +250,18 @@ export default function Clients() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: idx * 0.05 }}
-              className="bg-white rounded-2xl shadow-sm border border-slate-100 group hover:shadow-md transition-all overflow-hidden"
+              className="bg-[#1E293B] rounded-3xl shadow-xl border border-slate-800 group hover:border-[#EAB308]/40 transition-all overflow-hidden"
             >
-              <div className="p-5">
+              <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
-                   <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                   <div className="h-12 w-12 rounded-2xl bg-[#0B0F19] border border-slate-800 text-[#EAB308] flex items-center justify-center">
                       <User className="w-6 h-6" />
                    </div>
                    <div className="flex gap-2">
                       <Button 
                         variant="outline" 
                         size="icon" 
-                        className="h-10 w-10 text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 border-slate-100 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0" 
+                        className="h-10 w-10 text-slate-400 hover:text-white hover:bg-[#0B0F19] border-slate-800 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0 bg-[#0B0F19]" 
                         onClick={() => handleEdit(c)}
                         id={`edit-client-btn-${c.id}`}
                         title="Editar Cliente"
@@ -271,7 +271,7 @@ export default function Clients() {
                       <Button 
                         variant="outline" 
                         size="icon" 
-                        className="h-10 w-10 text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border-slate-100 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0" 
+                        className="h-10 w-10 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border-slate-800 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0 bg-[#0B0F19]" 
                         onClick={() => handleDelete(c.id)}
                         id={`delete-client-btn-${c.id}`}
                         title="Excluir Cliente"
@@ -281,25 +281,25 @@ export default function Clients() {
                    </div>
                 </div>
                 
-                <h3 className="font-black text-slate-900 text-lg leading-tight mb-4">{c.name}</h3>
+                <h3 className="font-black text-white text-lg leading-tight mb-4">{c.name}</h3>
                 
                 <div className="space-y-3">
-                   {c.phone && <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <Phone className="w-4 h-4 text-slate-300" /> <span className="font-medium">{c.phone}</span>
+                   {c.phone && <div className="flex items-center gap-3 text-sm text-slate-300">
+                      <Phone className="w-4 h-4 text-slate-500" /> <span className="font-medium">{c.phone}</span>
                    </div>}
-                   {c.email && <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <Mail className="w-4 h-4 text-slate-300" /> <span className="font-medium truncate">{c.email}</span>
+                   {c.email && <div className="flex items-center gap-3 text-sm text-slate-300">
+                      <Mail className="w-4 h-4 text-slate-500" /> <span className="font-medium truncate">{c.email}</span>
                    </div>}
-                   {c.address && <div className="flex items-start gap-3 text-sm text-slate-600">
-                      <MapPin className="w-4 h-4 text-slate-300 mt-0.5" /> <span className="font-medium">{c.address}</span>
+                   {c.address && <div className="flex items-start gap-3 text-sm text-slate-300">
+                      <MapPin className="w-4 h-4 text-slate-500 mt-0.5" /> <span className="font-medium">{c.address}</span>
                    </div>}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center">
+                <div className="mt-6 pt-4 border-t border-slate-800 flex justify-between items-center">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="text-blue-600 font-bold text-xs"
+                    className="text-[#EAB308] hover:text-[#ca8a04] hover:bg-[#0B0F19] font-bold text-xs"
                     onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
                   >
                     {expandedId === c.id ? (
@@ -327,7 +327,7 @@ export default function Clients() {
           ))}
         </AnimatePresence>
         {filteredClients.length === 0 && (
-           <div className="col-span-full py-12 text-center bg-slate-50 border-2 border-dashed rounded-3xl text-slate-400">
+           <div className="col-span-full py-12 text-center bg-[#1E293B] border-2 border-dashed border-slate-800 rounded-3xl text-slate-400">
              Nenhum cliente encontrado.
            </div>
         )}

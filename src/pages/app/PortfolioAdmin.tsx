@@ -340,9 +340,9 @@ export default function PortfolioAdmin() {
         }
       />
 
-      <div className="flex p-1 bg-slate-100 w-max rounded-2xl mb-6">
-         <button onClick={() => setActiveTab('projects')} className={cn("px-6 py-2.5 rounded-xl text-sm font-black transition-all", activeTab === 'projects' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700")}>MEUS PROJETOS</button>
-         <button onClick={() => setActiveTab('categories')} className={cn("px-6 py-2.5 rounded-xl text-sm font-black transition-all", activeTab === 'categories' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700")}>CAPAS DOS SERVIÇOS</button>
+      <div className="flex p-1.5 bg-white border border-slate-200 w-max rounded-2xl mb-6 shadow-xs">
+         <button onClick={() => setActiveTab('projects')} className={cn("px-6 py-2.5 rounded-xl text-sm font-black transition-all", activeTab === 'projects' ? "bg-[#EAB308] text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900")}>MEUS PROJETOS</button>
+         <button onClick={() => setActiveTab('categories')} className={cn("px-6 py-2.5 rounded-xl text-sm font-black transition-all", activeTab === 'categories' ? "bg-[#EAB308] text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-900")}>CAPAS DOS SERVIÇOS</button>
       </div>
 
       {activeTab === 'projects' ? (
@@ -356,7 +356,7 @@ export default function PortfolioAdmin() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ delay: idx * 0.05 }}
-                className="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition-all"
+                className="group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:border-[#EAB308] hover:shadow-md transition-all text-slate-900"
               >
                 <div className="aspect-[4/3] w-full bg-slate-100 relative overflow-hidden">
                   {item.photoUrl ? (
@@ -364,32 +364,32 @@ export default function PortfolioAdmin() {
                   ) : (item.mediaUrls && item.mediaUrls.length > 0) ? (
                     <img src={item.mediaUrls[0]} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="flex items-center justify-center w-full h-full text-slate-300"><ImageIcon className="w-12 h-12" /></div>
+                    <div className="flex items-center justify-center w-full h-full text-slate-400"><ImageIcon className="w-12 h-12" /></div>
                   )}
                   
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
                   
                   <div className="absolute top-3 right-3 flex gap-2 z-10">
-                     <Button variant="secondary" size="icon" className="h-9 w-9 bg-white/95 rounded-xl shadow-lg ring-1 ring-black/5 hover:bg-white hover:scale-105 transition-all" onClick={() => handleEdit(item)}>
-                        <Edit className="w-4 h-4 text-blue-600" />
+                     <Button variant="secondary" size="icon" className="h-9 w-9 bg-white/90 border border-slate-200 text-slate-800 rounded-xl shadow-sm hover:bg-slate-50 hover:scale-105 transition-all" onClick={() => handleEdit(item)}>
+                        <Edit className="w-4 h-4 text-[#ca8a04]" />
                      </Button>
-                     <Button variant="secondary" size="icon" className={`h-9 w-9 bg-white/95 rounded-xl shadow-lg ring-1 ring-black/5 hover:bg-white hover:scale-105 transition-all ${item.isPublic ? 'text-green-600' : 'text-slate-400'}`} onClick={() => toggleVisibility(item.id, item.isPublic)}>
+                     <Button variant="secondary" size="icon" className={`h-9 w-9 bg-white/90 border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 hover:scale-105 transition-all ${item.isPublic ? 'text-emerald-600' : 'text-slate-400'}`} onClick={() => toggleVisibility(item.id, item.isPublic)}>
                         {item.isPublic ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                      </Button>
-                     <Button variant="destructive" size="icon" className="h-9 w-9 rounded-xl shadow-lg hover:scale-105 transition-all" onClick={() => handleDelete(item.id)}>
+                     <Button variant="destructive" size="icon" className="h-9 w-9 rounded-xl shadow-sm hover:scale-105 transition-all bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="w-4 h-4" />
                      </Button>
                   </div>
 
                   {(item.mediaUrls?.length > 0) && (
-                    <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-slate-800 text-[10px] uppercase font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                    <div className="absolute bottom-3 left-3 bg-white/90 border border-slate-200 backdrop-blur-md text-[#ca8a04] text-[10px] uppercase font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-xs">
                       <Camera className="w-3 h-3" /> +{item.mediaUrls.length} Mídias
                     </div>
                   )}
                 </div>
                 <div className="p-5">
-                   <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1.5">{item.category || 'Sem Categoria'}</div>
-                   <h3 className="font-black text-slate-900 text-lg mb-2 leading-tight group-hover:text-blue-600 transition-colors">{item.title}</h3>
+                   <div className="text-[10px] font-black text-[#ca8a04] uppercase tracking-widest mb-1.5">{item.category || 'Sem Categoria'}</div>
+                   <h3 className="font-black text-slate-900 text-lg mb-2 leading-tight group-hover:text-[#ca8a04] transition-colors">{item.title}</h3>
                    <p className="text-slate-500 text-sm line-clamp-2 font-medium mb-1">{item.description}</p>
                    
                    <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-3">
@@ -398,7 +398,7 @@ export default function PortfolioAdmin() {
                           onClick={() => toggleVisibility(item.id, item.isPublic)}
                           className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 py-1 px-2.5 rounded-full border transition-all ${
                             item.isPublic 
-                              ? 'text-emerald-700 bg-emerald-50 border-emerald-200/60 hover:bg-emerald-100' 
+                              ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' 
                               : 'text-slate-500 bg-slate-50 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
@@ -412,7 +412,7 @@ export default function PortfolioAdmin() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-blue-600 hover:text-blue-700 bg-blue-50/80 hover:bg-blue-100 border border-blue-100/50 rounded-xl"
+                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-[#ca8a04] hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl"
                           onClick={() => window.open('/portfolio', '_blank')}
                         >
                           <ExternalLink className="w-3.5 h-3.5 mr-1 shrink-0" /> Ver Site
@@ -420,7 +420,7 @@ export default function PortfolioAdmin() {
                         <Button 
                           variant="secondary" 
                           size="sm" 
-                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100/80 border border-amber-100/50 rounded-xl"
+                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-[#ca8a04] hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl"
                           onClick={() => handleEdit(item)}
                         >
                           <Edit className="w-3.5 h-3.5 mr-1 shrink-0" /> Editar
@@ -428,7 +428,7 @@ export default function PortfolioAdmin() {
                         <Button 
                           variant="secondary" 
                           size="sm" 
-                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100/80 border border-red-100/50 rounded-xl"
+                          className="flex-1 h-9 text-[11px] font-black uppercase tracking-tight text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 className="w-3.5 h-3.5 mr-1 shrink-0" /> Excluir
@@ -441,7 +441,7 @@ export default function PortfolioAdmin() {
           </AnimatePresence>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl p-8 border border-slate-100">
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 text-slate-900 shadow-sm">
            <h3 className="text-xl font-black text-slate-900 mb-6">Personalizar Capas das Categorias</h3>
            <p className="text-sm text-slate-500 mb-8 max-w-2xl">Aqui você pode subir fotos reais dos seus serviços para as 8 categorias principais do site. Essas fotos nunca serão bloqueadas por redes externas.</p>
            
@@ -457,14 +457,14 @@ export default function PortfolioAdmin() {
                 { id: '8', name: 'Instalações Elétricas' },
               ].map((category) => (
                 <div key={category.id} className="space-y-3">
-                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{category.name}</Label>
+                   <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{category.name}</Label>
                    <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-50 border-2 border-dashed border-slate-200 group">
                       {categoryPhotos[category.id] ? (
                         <img src={categoryPhotos[category.id]} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-300">
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400">
                            {isUploadingCategory === category.id ? (
-                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EAB308]"></div>
                            ) : (
                              <>
                                <ImageIcon className="w-8 h-8 mb-1" />
@@ -473,7 +473,7 @@ export default function PortfolioAdmin() {
                            )}
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
+                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
                          {isUploadingCategory === category.id ? (
                            <span className="text-white text-[10px] font-black uppercase tracking-widest">Enviando...</span>
                          ) : (

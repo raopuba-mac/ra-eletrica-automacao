@@ -156,38 +156,38 @@ export default function LeadsAdmin() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ delay: idx * 0.05 }}
-              className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col group transition-all hover:shadow-md ${lead.status === 'new' ? 'ring-2 ring-blue-500 ring-offset-1' : 'border-slate-100'}`}
+              className={`bg-white rounded-2xl shadow-xs border overflow-hidden flex flex-col group transition-all hover:border-[#EAB308] hover:shadow-md ${lead.status === 'new' ? 'ring-2 ring-[#EAB308] border-slate-200' : 'border-slate-200'}`}
             >
-              <div className="p-6 flex-1">
+              <div className="p-6 flex-1 text-slate-900">
                  <div className="flex justify-between items-start mb-6">
                     <div className="flex items-center gap-3">
-                       <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${lead.status === 'new' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-100 text-slate-400'}`}>
+                       <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${lead.status === 'new' ? 'bg-[#EAB308] text-slate-950 shadow-md font-black' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
                           <User className="w-6 h-6" />
                        </div>
                        <div>
                           <h3 className="font-black text-slate-900 text-lg leading-tight">{lead.name}</h3>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1 mt-1">
-                             <Calendar className="w-3 h-3" /> {lead.createdAt ? format(lead.createdAt, 'dd/MM/yyyy HH:mm') : 'Data não disponível'}
+                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-1 mt-1">
+                             <Calendar className="w-3 h-3 text-[#ca8a04]" /> {lead.createdAt ? format(lead.createdAt, 'dd/MM/yyyy HH:mm') : 'Data não disponível'}
                           </div>
                        </div>
                     </div>
                     {lead.status === 'new' ? (
-                      <span className="bg-blue-100 text-blue-700 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest animate-pulse">Novo</span>
+                      <span className="bg-[#EAB308] text-slate-950 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest animate-pulse">Novo</span>
                     ) : (
                       <div className="flex flex-col items-end gap-1">
-                        <span className="bg-slate-100 text-slate-500 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest flex items-center gap-1">
-                          <CheckCheck className="w-3 h-3" /> {lead.status === 'contacted' ? 'Lido' : lead.status === 'converted' ? 'Convertido' : 'Arquivado'}
+                        <span className="bg-slate-100 border border-slate-200 text-slate-700 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest flex items-center gap-1">
+                          <CheckCheck className="w-3 h-3 text-emerald-600" /> {lead.status === 'contacted' ? 'Lido' : lead.status === 'converted' ? 'Convertido' : 'Arquivado'}
                         </span>
                       </div>
                     )}
                  </div>
 
                  <div className="space-y-3 mb-6">
-                    <div className="bg-slate-50 rounded-xl p-4 flex items-start gap-3">
-                      <MessageCircle className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" /> 
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-start gap-3">
+                      <MessageCircle className="w-5 h-5 text-[#ca8a04] mt-0.5 shrink-0" /> 
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Serviço Solicitado</p>
-                        <p className="font-bold text-slate-800">{lead.serviceType || 'Não especificado'}</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Serviço Solicitado</p>
+                        <p className="font-bold text-slate-900">{lead.serviceType || 'Não especificado'}</p>
                       </div>
                     </div>
                     
@@ -196,38 +196,38 @@ export default function LeadsAdmin() {
                        href={`https://wa.me/${lead.phone?.replace(/\D/g, '')}`} 
                        target="_blank" 
                        rel="noreferrer" 
-                       className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all group/link"
+                       className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 transition-all group/link"
                       >
-                        <Phone className="w-4 h-4 text-emerald-500 group-hover/link:animate-bounce" /> 
-                        <span className="text-sm font-bold text-slate-600 group-hover/link:text-emerald-700">{lead.phone}</span>
+                        <Phone className="w-4 h-4 text-emerald-600 group-hover/link:animate-bounce" /> 
+                        <span className="text-sm font-bold text-slate-800 group-hover/link:text-emerald-700">{lead.phone}</span>
                       </a>
                       
                       {lead.email && (
-                        <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                        <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
                           <Mail className="w-4 h-4 text-slate-400" /> 
-                          <span className="text-sm font-medium text-slate-600 truncate">{lead.email}</span>
+                          <span className="text-sm font-medium text-slate-700 truncate">{lead.email}</span>
                         </div>
                       )}
                     </div>
 
                     {lead.address && (
-                      <div className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                      <div className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
                         <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" /> 
-                        <span className="text-sm font-medium text-slate-600 leading-relaxed">{lead.address}</span>
+                        <span className="text-sm font-medium text-slate-700 leading-relaxed">{lead.address}</span>
                       </div>
                     )}
                  </div>
               </div>
-              <div className="bg-slate-50/50 p-4 px-6 border-t flex items-center justify-between">
+              <div className="bg-slate-50 p-4 px-6 border-t border-slate-200 flex items-center justify-between">
                  <div className="flex flex-wrap gap-2">
                     {lead.status === 'new' && (
                       <Button 
                        variant="outline" 
                        size="sm" 
                        onClick={() => updateStatus(lead.id, 'contacted')}
-                       className="bg-white border-slate-200 hover:bg-blue-50 hover:text-blue-600 font-bold text-xs h-8"
+                       className="bg-white border-slate-200 hover:bg-slate-100 text-slate-900 font-bold text-xs h-8"
                       >
-                        <CheckCheck className="w-3 h-3 mr-1" /> Marcar como Lido
+                        <CheckCheck className="w-3 h-3 mr-1 text-emerald-600" /> Marcar como Lido
                       </Button>
                     )}
                     {lead.status === 'contacted' && (
@@ -235,16 +235,16 @@ export default function LeadsAdmin() {
                        variant="outline" 
                        size="sm" 
                        onClick={() => convertToClient(lead)}
-                       className="bg-white border-slate-200 hover:bg-emerald-50 hover:text-emerald-600 font-bold text-xs h-8"
+                       className="bg-white border-slate-200 hover:bg-slate-100 text-slate-900 font-bold text-xs h-8"
                       >
-                        <Plus className="w-3 h-3 mr-1" /> Virou Cliente
+                        <Plus className="w-3 h-3 mr-1 text-[#ca8a04]" /> Virou Cliente
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" className="text-slate-500 hover:text-blue-600 h-8 font-bold text-xs" onClick={() => openEdit(lead)}>
+                    <Button variant="ghost" size="sm" className="text-slate-600 hover:text-[#ca8a04] h-8 font-bold text-xs" onClick={() => openEdit(lead)}>
                       <Edit className="w-3.5 h-3.5 mr-1" /> Editar
                     </Button>
                  </div>
-                 <Button variant="ghost" size="icon" className="text-slate-300 hover:text-red-600 transition-colors h-8 w-8" onClick={() => confirmDelete(lead.id)}>
+                 <Button variant="ghost" size="icon" className="text-slate-400 hover:text-rose-600 transition-colors h-8 w-8" onClick={() => confirmDelete(lead.id)}>
                     <Trash2 className="w-4 h-4" />
                  </Button>
               </div>
@@ -255,11 +255,11 @@ export default function LeadsAdmin() {
            <motion.div 
              initial={{ opacity: 0 }} 
              animate={{ opacity: 1 }} 
-             className="col-span-full py-20 border-2 border-dashed rounded-3xl text-center"
+             className="col-span-full py-20 border-2 border-dashed border-slate-200 bg-white rounded-3xl text-center"
            >
-             <MessageCircle className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-             <h3 className="text-slate-400 font-black text-xl">Sem novos leads</h3>
-             <p className="text-slate-400 text-sm mt-1">Os contatos do site aparecerão aqui.</p>
+             <MessageCircle className="w-12 h-12 text-[#ca8a04] opacity-80 mx-auto mb-4" />
+             <h3 className="text-slate-900 font-black text-xl italic uppercase">Sem novos leads</h3>
+             <p className="text-slate-500 text-sm mt-1">Os contatos do site aparecerão aqui.</p>
            </motion.div>
          )}
       </div>
