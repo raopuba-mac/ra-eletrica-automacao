@@ -2,14 +2,15 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 // Register Service Worker for offline support and push notifications
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const isDevelopment = 
-      window.location.hostname === 'localhost' || 
-      window.location.hostname === '127.0.0.1' || 
+    const isDevelopment =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
       window.location.hostname.includes('ais-dev-') ||
       window.location.hostname.includes('ais-pre-') ||
       window.location.hostname.includes('.run.app');
@@ -18,14 +19,14 @@ if ('serviceWorker' in navigator) {
       console.log('[PWA] Ambiente de desenvolvimento/preview detectado. Removendo Service Workers para evitar cache estático antigo.');
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         let unregisteredAny = false;
-        const promises = registrations.map(registration => 
+        const promises = registrations.map(registration =>
           registration.unregister().then((success) => {
             if (success) {
               unregisteredAny = true;
             }
           })
         );
-        
+
         Promise.all(promises).then(() => {
           if (unregisteredAny) {
             console.log('[PWA] Service Worker desregistrado com sucesso no desenvolvimento.');
@@ -57,8 +58,10 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>
 );

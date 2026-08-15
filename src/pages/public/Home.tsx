@@ -24,6 +24,7 @@ export default function Home() {
   const [companyName, setCompanyName] = useState('Elétrica, Automação e Segurança Eletrônica');
   const [bio, setBio] = useState('Olá! Eu sou Renan Augusto. Tenho dedicado minha carreira a oferecer soluções de alta qualidade em elétrica e automação.');
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
 
   useEffect(() => {
     async function loadPublicData() {
@@ -48,6 +49,9 @@ export default function Home() {
 
   const handleWhatsApp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmittingLead) return;
+    setIsSubmittingLead(true);
+
     const formElement = e.currentTarget;
     const formData = new FormData(formElement);
     const data = {
@@ -61,10 +65,10 @@ export default function Home() {
     const msg = `Olá! Meu nome é ${data.name}.\nPreciso de um serviço de: ${data.serviceType}.\nEndereço: ${data.address}\nTelefone: ${data.phone}`;
     const destinationPhone = phone && phone.trim() !== '' ? phone : '5534992609206';
     window.open(`https://wa.me/${destinationPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-    
+
     formElement.reset();
     setIsContactDialogOpen(false);
-    
+
     try {
       const usersSnap = await getDocs(query(collection(db, 'users'), limit(1)));
       let ownerId = 'admin';
@@ -81,16 +85,18 @@ export default function Home() {
       });
     } catch (e) {
       console.error('Erro ao salvar lead:', e);
+    } finally {
+      setIsSubmittingLead(false);
     }
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col gap-24 pb-24 bg-grid-slate-100"
     >
-      <SEO 
+      <SEO
         title="RA Elétrica, Automação e Segurança Eletrônica | Soluções Profissionais"
         description="Serviços especializados de elétrica residencial e industrial, instalação de cercas elétricas, automatizadores, câmeras de segurança (CFTV) e automação em geral comandados por Renan Augusto."
         keywords="elétrica, automação, segurança eletrônica, cerca elétrica, concertina, CFTV, interfone, instalação elétrica, Renan Augusto, RA"
@@ -100,7 +106,7 @@ export default function Home() {
       <section className="bg-slate-950 text-white mt-[-80px] pt-44 pb-32 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-dot-pattern opacity-10"></div>
         <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/20 blur-[120px] -z-0"></div>
-        
+
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="flex flex-col items-center text-center">
             <motion.div
@@ -112,18 +118,18 @@ export default function Home() {
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
               Disponível para Novos Projetos
             </motion.div>
-            
-            <motion.h1 
+
+            <motion.h1
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9]"
             >
-              ELÉTRICA <span className="text-primary">&</span><br/> 
+              ELÉTRICA <span className="text-primary">&</span><br/>
               AUTOMAÇÃO
             </motion.h1>
-            
-            <motion.p 
+
+            <motion.p
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -131,8 +137,8 @@ export default function Home() {
             >
               Soluções inteligentes em segurança eletrônica, controle de acesso e infraestrutura elétrica de alto padrão. Tecnologia a serviço da sua proteção.
             </motion.p>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -168,9 +174,9 @@ export default function Home() {
             <div className="relative">
               <div className="absolute -top-8 -left-8 w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10"></div>
               <div className="w-full aspect-square max-w-[500px] rounded-[3rem] overflow-hidden border-8 border-white shadow-2xl relative">
-                 <img 
-                   src={perfilImg} 
-                   alt={profileName} 
+                 <img
+                   src={perfilImg}
+                   alt={profileName}
                    className="w-full h-full object-cover"
                    loading="lazy"
                  />
@@ -181,7 +187,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className="lg:w-1/2 space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-100 text-slate-700 rounded-full text-xs md:text-sm font-black tracking-widest uppercase mb-2">
                Trajetória Profissional
@@ -203,7 +209,7 @@ export default function Home() {
                   { title: "Serviço de Confiança", desc: "Garantia validada com excelência técnica e total transparência." },
                   { title: "Alta Performance", desc: "Durabilidade, sofisticação e tecnologia de ponta em cada entrega." }
                 ].map((item, i) => (
-                  <motion.div 
+                  <motion.div
                     key={item.title}
                     initial={{ opacity: 0, x: 20 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -232,17 +238,17 @@ export default function Home() {
       {/* Featured Services Overview */}
       <section className="bg-slate-900 py-24 text-white overflow-hidden relative">
         <div className="absolute inset-0 bg-grid-slate-100 opacity-[0.03]"></div>
-        
+
         {/* Ambient electrical glows in background */}
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[6000ms]"></div>
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[8000ms]"></div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-4xl md:text-5xl font-black tracking-tight">SOLUÇÕES COMPLETAS</h2>
             <p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">Do projeto à execução, cuidamos de toda a infraestrutura tecnológica do seu imóvel.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { title: "Elétrica", desc: "Instalações de baixa tensão, quadros e manutenção." },
@@ -256,7 +262,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          
+
           <div className="mt-16 text-center">
             <Link to="/portfolio" className="text-primary font-bold inline-flex items-center group">
                Explorar Galeria de Projetos <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -269,7 +275,7 @@ export default function Home() {
       <section id="contact" className="container mx-auto px-4 mb-24">
         <div className="bg-primary rounded-[3rem] p-12 md:p-24 text-white relative overflow-hidden flex flex-col items-center text-center shadow-3xl shadow-primary/30">
           <div className="absolute top-0 left-0 w-full h-full bg-dot-pattern opacity-20"></div>
-          
+
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
@@ -280,9 +286,9 @@ export default function Home() {
             <p className="text-blue-50 text-xl md:text-2xl mb-12 font-medium leading-relaxed">
               Transforme sua casa ou empresa com o que há de mais moderno em elétrica e segurança. Atendimento rápido via WhatsApp.
             </p>
-            
+
             <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
-              <DialogTrigger 
+              <DialogTrigger
                 render={
                   <Button className="bg-white text-primary hover:bg-slate-100 rounded-full px-12 py-8 h-auto text-xl font-black shadow-xl group">
                     <Phone className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" /> INICIAR ATENDIMENTO
@@ -316,8 +322,8 @@ export default function Home() {
                     <Label className="font-bold">🛠 Tipo de Serviço</Label>
                     <Input id="serviceType" name="serviceType" required placeholder="Ex: Câmeras, Elétrica, etc." className="rounded-xl h-12 border-slate-200" />
                   </div>
-                  <Button type="submit" size="lg" className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-lg font-bold mt-4">
-                    ENVIAR E CHAMAR NO WHATSAPP
+                  <Button type="submit" size="lg" disabled={isSubmittingLead} className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-lg font-bold mt-4 disabled:opacity-60">
+                    {isSubmittingLead ? 'ENVIANDO...' : 'ENVIAR E CHAMAR NO WHATSAPP'}
                   </Button>
                 </form>
               </DialogContent>

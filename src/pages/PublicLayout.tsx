@@ -5,7 +5,6 @@ import { collection, query, getDocs, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../components/ui/button';
-import AIChatbot from '../components/AIChatbot';
 
 const logoImg = '/logo.jpg?v=6';
 
@@ -55,11 +54,11 @@ export default function PublicLayout() {
             <Link to="/" className="flex items-center gap-3.5 group" aria-label="Página Inicial">
               <div className="w-16 h-16 bg-white border border-slate-200 text-white rounded-xl overflow-hidden shadow-md group-hover:border-blue-500 transition-all shrink-0 flex items-center justify-center font-black italic tracking-tighter" aria-hidden="true">
                 {!logoError ? (
-                  <img 
-                    src={logoSrc} 
-                    alt="RA Logo" 
-                    className="w-full h-full object-cover" 
-                    referrerPolicy="no-referrer" 
+                  <img
+                    src={logoSrc}
+                    alt="RA Logo"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
                     onError={handleLogoError}
                   />
                 ) : (
@@ -75,7 +74,7 @@ export default function PublicLayout() {
               {companyName}
             </span>
           </Link>
-          
+
           <nav className="hidden md:flex gap-6 font-medium text-slate-600">
             <Link to="/" className="hover:text-blue-600 transition">Início</Link>
             <Link to="/portfolio" className="hover:text-blue-600 transition">Serviços e Portfólio</Link>
@@ -83,9 +82,9 @@ export default function PublicLayout() {
             <Link to="/login" className="hover:text-blue-600 transition">Acesso Profissional</Link>
           </nav>
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="md:hidden text-slate-600"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-expanded={isMobileMenuOpen}
@@ -133,7 +132,6 @@ export default function PublicLayout() {
         <Outlet />
       </main>
 
-      <AIChatbot phone={phone} companyName={companyName} />
       <footer className="bg-slate-900 text-slate-400 py-12 text-center">
         <div className="container mx-auto px-4">
           <p>© {new Date().getFullYear()} {companyName}. Todos os direitos reservados.</p>

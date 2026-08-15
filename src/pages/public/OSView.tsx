@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Zap, Camera, Clock, CheckCircle2, Phone, ArrowLeft, Download } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '../../components/ui/button';
@@ -9,6 +7,9 @@ import SEO from '../../components/SEO';
 
 export default function OSView() {
   const { orderId } = useParams();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') || searchParams.get('t') || '';
+
   const [order, setOrder] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,26 +34,36 @@ export default function OSView() {
   const handleSign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderId || !sigName.trim()) return;
+    if (!token) {
+      alert('Token de compartilhamento ausente. Não é possível registrar a assinatura.');
+      return;
+    }
     setSigning(true);
     try {
-      const docRef = doc(db, 'serviceOrders', orderId);
-      const timestamp = Date.now();
-      await updateDoc(docRef, {
-        clientSignatureName: sigName,
-        clientSignatureDoc: sigDoc || '',
-        signedAt: timestamp,
-        updatedAt: timestamp
+      const res = await fetch(`/api/public/os/${orderId}/sign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          clientSignatureName: sigName.trim(),
+          clientSignatureDoc: sigDoc.trim(),
+        }),
       });
-      setOrder((prev: any) => ({
-        ...prev,
-        clientSignatureName: sigName,
-        clientSignatureDoc: sigDoc || '',
-        signedAt: timestamp,
-        updatedAt: timestamp
-      }));
-    } catch(err) {
-      console.error("Erro ao registrar assinatura:", err);
-      alert("Falha ao registrar assinatura digital. Por favor, tente novamente.");
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setOrder((prev: any) => ({
+          ...prev,
+          clientSignatureName: data.clientSignatureName,
+          clientSignatureDoc: data.clientSignatureDoc,
+          signedAt: data.signedAt,
+        }));
+      } else {
+        alert(data.error || 'Falha ao registrar assinatura digital.');
+      }
+    } catch (err) {
+      console.error('Erro ao registrar assinatura:', err);
+      alert('Falha ao registrar assinatura digital. Por favor, tente novamente.');
     } finally {
       setSigning(false);
     }
@@ -61,32 +72,24 @@ export default function OSView() {
   useEffect(() => {
     async function fetchOS() {
       if (!orderId) return;
+      if (!token) {
+        setError('Token de compartilhamento ausente. Solicite um link válido ao profissional.');
+        setLoading(false);
+        return;
+      }
       try {
-        const orderSnap = await getDoc(doc(db, 'serviceOrders', orderId));
-        if (orderSnap.exists()) {
-          const orderData = orderSnap.data();
-          setOrder({ id: orderSnap.id, ...orderData });
+        const res = await fetch(`/api/public/os/${orderId}?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
 
-          // Fetch client info
-          if (orderData.clientId) {
-            const clientSnap = await getDoc(doc(db, 'clients', orderData.clientId));
-            if (clientSnap.exists()) {
-              setClient(clientSnap.data());
-            }
-          }
-
-          // Fetch user profile (company details)
-          if (orderData.userId) {
-            const userSnap = await getDoc(doc(db, 'users', orderData.userId));
-            if (userSnap.exists()) {
-              setCompanyProfile(userSnap.data());
-            }
-          }
+        if (res.ok) {
+          setOrder(data);
+          setClient({ name: data.clientName, phone: data.companyPhone });
+          setCompanyProfile({ companyName: data.companyName, phone: data.companyPhone });
         } else {
-          setError('Ordem de Serviço não encontrada.');
+          setError(data.error || 'Ordem de Serviço não encontrada.');
         }
       } catch (err) {
-        console.error("Error fetching OS:", err);
+        console.error('Error fetching OS:', err);
         setError('Ocorreu um erro ao carregar os dados.');
       } finally {
         setLoading(false);
@@ -94,7 +97,7 @@ export default function OSView() {
     }
 
     fetchOS();
-  }, [orderId]);
+  }, [orderId, token]);
 
   if (loading) {
     return (
@@ -126,24 +129,24 @@ export default function OSView() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 pt-10 px-4 md:px-6">
-      <SEO 
+      <SEO
         title={`Ordem de Serviço #${orderId?.slice(0, 8).toUpperCase() || ''} - RA Elétrica & Automação`}
         description={`Ordem de Serviço emitida para ${client?.name || 'Cliente'} em serviços de elétrica, automação ou segurança eletrônica.`}
         keywords="ordem de serviço, ra elétrica, automação, cftv, eletricista, cerca elétrica"
       />
       <div className="max-w-3xl mx-auto space-y-8">
-        
+
         {/* Header/Logo */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden">
            <div className="absolute inset-0 bg-dot-pattern opacity-5 pointer-events-none"></div>
            <div className="flex items-center gap-4 relative z-10">
               <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-xl border border-slate-100 shrink-0 bg-white">
                  {!logoError ? (
-                    <img 
-                      src={logoSrc} 
-                      alt="RA Logo" 
-                      className="w-full h-full object-cover" 
-                      referrerPolicy="no-referrer" 
+                    <img
+                      src={logoSrc}
+                      alt="RA Logo"
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
                       onError={handleLogoError}
                     />
                   ) : (
@@ -160,7 +163,7 @@ export default function OSView() {
                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Comprovante de Serviço Realizado</span>
               </div>
            </div>
-           
+
            <div className="flex flex-col items-center md:items-end relative z-10">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status do Documento</span>
               <div className="bg-emerald-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
@@ -170,13 +173,13 @@ export default function OSView() {
         </div>
 
         {/* Content Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden"
         >
           <div className="p-10 space-y-10">
-             
+
              {/* Client & Date Info */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                 <div className="space-y-2">
@@ -191,7 +194,7 @@ export default function OSView() {
                       </div>
                    </div>
                 </div>
-                
+
                 <div className="space-y-2 md:text-right">
                    <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none md:justify-end">Data de Conclusão</h3>
                    <div className="flex items-center gap-3 md:justify-end">
@@ -221,7 +224,7 @@ export default function OSView() {
              {/* Photos Comparison */}
              <div className="space-y-6">
                 <h3 className="text-[20px] font-black text-slate-900 uppercase tracking-tighter italic leading-none">Registro Fotográfico</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    {/* BEFORE */}
                    <div className="space-y-4">
@@ -274,7 +277,7 @@ export default function OSView() {
              {/* Assinatura / Aceite Digital */}
              <div className="space-y-6">
                 <h3 className="text-[20px] font-black text-slate-900 uppercase tracking-tighter italic leading-none">Termo de Conformidade & Recebimento</h3>
-                
+
                 {order.clientSignatureName ? (
                    <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full"></div>
@@ -304,28 +307,28 @@ export default function OSView() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="space-y-1">
                             <label className="text-[9px] font-black uppercase text-slate-400 pl-1">Nome Completo do Responsável</label>
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               required
                               value={sigName}
                               onChange={(e) => setSigName(e.target.value)}
-                              placeholder="Nome de quem está recebendo" 
+                              placeholder="Nome de quem está recebendo"
                               className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
                             />
                          </div>
                          <div className="space-y-1">
                             <label className="text-[9px] font-black uppercase text-slate-400 pl-1">CPF ou RG (Segurança extra)</label>
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={sigDoc}
                               onChange={(e) => setSigDoc(e.target.value)}
-                              placeholder="Ex: 000.000.000-00 ou RG" 
+                              placeholder="Ex: 000.000.000-00 ou RG"
                               className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
                             />
                          </div>
                       </div>
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         disabled={signing}
                         className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] gap-2"
                       >
@@ -341,13 +344,13 @@ export default function OSView() {
              <div className="bg-slate-900 rounded-[2rem] p-10 text-white relative overflow-hidden group">
                 <div className="absolute inset-0 bg-dot-pattern opacity-10"></div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[50px] -mr-16 -mt-16"></div>
-                
+
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                    <div className="text-center md:text-left space-y-2">
                       <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Investimento Técnico</span>
                       <h3 className="text-4xl lg:text-5xl font-black italic tracking-tighter leading-none uppercase">Valor Final</h3>
                    </div>
-                   
+
                    <div className="text-center md:text-right">
                       <div className="flex items-baseline gap-2 justify-center md:justify-end">
                          <span className="text-xl font-bold text-slate-500 italic">R$</span>
@@ -369,8 +372,8 @@ export default function OSView() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-           <Button 
-             variant="outline" 
+           <Button
+             variant="outline"
              className="h-16 px-10 rounded-[1.5rem] border-2 font-black italic tracking-tighter uppercase text-slate-600 hover:bg-slate-100 gap-2"
              onClick={() => window.print()}
            >

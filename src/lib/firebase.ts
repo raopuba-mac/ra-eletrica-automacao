@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -8,11 +9,13 @@ export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true
 }, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // Adicionando ao window para depuração manual se necessário
 if (typeof window !== 'undefined') {
   (window as any).firebaseApp = app;
   (window as any).firestoreDb = db;
+  (window as any).firebaseStorage = storage;
 }
 
 // Testar conexão
@@ -25,7 +28,7 @@ async function testConnection() {
     console.log("Conectado ao Firestore com sucesso.");
   } catch (error: any) {
     console.warn("Resultado do teste de conexão:", error.code, error.message);
-    
+
     // Se o erro for 'unavailable', 'deadline-exceeded' ou offline, mostramos instruções claras
     if (error.message?.includes('the client is offline') || error.code === 'unavailable' || error.code === 'deadline-exceeded') {
       console.error(

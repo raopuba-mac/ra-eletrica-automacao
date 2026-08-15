@@ -9,16 +9,44 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+function DialogTrigger({ render, children, ...props }: DialogPrimitive.Trigger.Props) {
+  const renderFn = React.useMemo(() => {
+    if (!render) return undefined;
+    if (typeof render === 'function') return render;
+    if (React.isValidElement(render)) {
+      return (triggerProps: Record<string, any>) =>
+        React.cloneElement(render as React.ReactElement<any>, {
+          ...triggerProps,
+          ...((render.props as Record<string, any>) || {}),
+          className: cn((render.props as Record<string, any>)?.className, triggerProps?.className),
+        });
+    }
+    return render;
+  }, [render]);
+
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" render={renderFn} {...props}>{children}</DialogPrimitive.Trigger>
 }
 
 function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
-function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+function DialogClose({ render, children, ...props }: DialogPrimitive.Close.Props) {
+  const renderFn = React.useMemo(() => {
+    if (!render) return undefined;
+    if (typeof render === 'function') return render;
+    if (React.isValidElement(render)) {
+      return (closeProps: Record<string, any>) =>
+        React.cloneElement(render as React.ReactElement<any>, {
+          ...closeProps,
+          ...((render.props as Record<string, any>) || {}),
+          className: cn((render.props as Record<string, any>)?.className, closeProps?.className),
+        });
+    }
+    return render;
+  }, [render]);
+
+  return <DialogPrimitive.Close data-slot="dialog-close" render={renderFn} {...props}>{children}</DialogPrimitive.Close>
 }
 
 function DialogOverlay({
@@ -60,16 +88,16 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            render={
+            render={(closeProps) => (
               <Button
                 variant="ghost"
                 className="absolute top-2 right-2"
                 size="icon-sm"
+                {...closeProps}
               />
-            }
+            )}
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -107,7 +135,7 @@ function DialogFooter({
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
+        <DialogPrimitive.Close render={(closeProps) => <Button variant="outline" {...closeProps} />}>
           Close
         </DialogPrimitive.Close>
       )}

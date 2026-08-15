@@ -10,15 +10,15 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    
+
     function isValidId(id) {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
-    
+
     function incoming() {
       return request.resource.data;
     }
-    
+
     function existing() {
       return resource.data;
     }
@@ -41,6 +41,7 @@ service cloud.firestore {
 
     // --- Collections ---
 
+    // 1. Users Profile
     match /users/{userId} {
       function isValidUser(data) {
         let hasCore = data.keys().hasAll(['email', 'createdAt', 'updatedAt']);
@@ -56,17 +57,17 @@ service cloud.firestore {
         let pBio = !('bio' in data) || (data.bio is string && data.bio.size() <= 5000);
         return hasCore && hasMaxKeys && isTypes && pName && pCompany && pPhone && pWhatsApp && pSlug && pBio;
       }
-      
-      allow read: if true; // Profiles are public
-      allow list: if isSignedIn();
-      
-      allow create: if isOwner(userId) 
+
+      allow get: if isOwner(userId) || isScheduler();
+      allow list: if false;
+
+      allow create: if isOwner(userId)
         && isValidUser(incoming())
         && request.auth.token.email_verified == true
         && incoming().createdAt is number
         && incoming().updatedAt is number;
-        
-      allow update: if isOwner(userId) 
+
+      allow update: if isOwner(userId)
         && isValidUser(incoming())
         && request.auth.token.email_verified == true
         && incoming().createdAt == existing().createdAt
@@ -74,6 +75,7 @@ service cloud.firestore {
         && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'companyName', 'phone', 'whatsappInfo', 'websiteSlug', 'bio', 'updatedAt']);
     }
 
+    // 2. Clients (Restricted to authenticated owner)
     match /clients/{clientId} {
       function isValidClient(data) {
         let hasCore = data.keys().hasAll(['userId', 'name', 'createdAt', 'updatedAt']);
@@ -89,24 +91,24 @@ service cloud.firestore {
         return hasCore && hasMaxKeys && isTypes && pPhone && pEmail && pAddress && pNotes;
       }
 
-      allow read: if isValidId(clientId);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
       allow create: if isValidId(clientId) && isOwner(incoming().userId)
         && isValidClient(incoming())
         && incoming().createdAt is number
         && incoming().updatedAt is number;
-        
+
       allow update: if isValidId(clientId) && isOwner(existing().userId)
         && isOwner(incoming().userId)
         && isValidClient(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
         && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'email', 'address', 'notes', 'updatedAt']);
-        
+
       allow delete: if isValidId(clientId) && isOwner(existing().userId);
     }
 
+    // 3. Quotes
     match /quotes/{quoteId} {
       function isValidQuote(data) {
          let hasCore = data.keys().hasAll(['userId', 'clientId', 'status', 'createdAt', 'updatedAt']);
@@ -122,24 +124,25 @@ service cloud.firestore {
          return hasCore && hasMaxKeys && isTypes && pClientName && pDesc && pTotal;
       }
 
-      allow read: if isValidId(quoteId) && isOwner(existing().userId);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      
+      allow read: if isScheduler() || (isValidId(quoteId) && isOwner(existing().userId));
+      allow list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
       allow create: if isValidId(quoteId) && isOwner(incoming().userId)
         && isValidQuote(incoming())
         && incoming().createdAt is number
         && incoming().updatedAt is number;
-        
+
       allow update: if isValidId(quoteId) && isOwner(existing().userId)
         && isOwner(incoming().userId)
         && isValidQuote(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
         && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description', 'totalAmount', 'clientName', 'updatedAt']);
-        
+
       allow delete: if isValidId(quoteId) && isOwner(existing().userId);
     }
 
+    // 4. Service Orders
     match /serviceOrders/{orderId} {
       function isValidOrder(data) {
          let hasCore = data.keys().hasAll(['userId', 'clientId', 'status', 'createdAt', 'updatedAt']);
@@ -159,31 +162,36 @@ service cloud.firestore {
          return hasCore && hasMaxKeys && isTypes && pQuoteId && pDesc && pSched && pSchedTime && pPrice && pPhotos && pPhotosAfter;
       }
 
-      allow read: if isValidId(orderId);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      
+      allow get, list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
       allow create: if isValidId(orderId) && isOwner(incoming().userId)
         && isValidOrder(incoming())
         && incoming().createdAt is number
         && incoming().updatedAt is number;
-        
+
       allow update: if (isValidId(orderId) && isOwner(existing().userId)
         && isOwner(incoming().userId)
         && isValidOrder(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
-        && incoming().diff(existing()).affectedKeys().hasOnly(['clientId', 'status', 'description', 'scheduledDate', 'scheduledTime', 'finalPrice', 'photos', 'photosAfter', 'updatedAt']))
+        && incoming().diff(existing()).affectedKeys().hasOnly(['clientId', 'status', 'description', 'scheduledDate', 'scheduledTime', 'finalPrice', 'photos', 'photosAfter', 'shareToken', 'updatedAt']))
         || (isValidId(orderId)
+        && isScheduler()
+        && (!('signedAt' in existing()) || existing().signedAt == null || existing().signedAt == 0)
         && incoming().userId == existing().userId
         && incoming().clientId == existing().clientId
         && incoming().status == existing().status
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
+        && incoming().clientSignatureName is string && incoming().clientSignatureName.size() >= 2 && incoming().clientSignatureName.size() <= 150
+        && incoming().clientSignatureDoc is string && incoming().clientSignatureDoc.size() <= 50
+        && incoming().signedAt is number
         && incoming().diff(existing()).affectedKeys().hasOnly(['clientSignatureName', 'clientSignatureDoc', 'signedAt', 'updatedAt']));
-        
+
       allow delete: if isValidId(orderId) && isOwner(existing().userId);
     }
 
+    // 5. Agenda
     match /agenda/{eventId} {
       function isValidEvent(data) {
         let hasCore = data.keys().hasAll(['userId', 'title', 'date', 'type', 'createdAt', 'updatedAt']);
@@ -202,23 +210,24 @@ service cloud.firestore {
 
       allow read: if isScheduler() || (isValidId(eventId) && isOwner(existing().userId));
       allow list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      
+
       allow create: if isValidId(eventId) && isOwner(incoming().userId)
         && isValidEvent(incoming())
         && incoming().createdAt is number
         && incoming().updatedAt is number;
-        
+
       allow update: if (isValidId(eventId) && isOwner(existing().userId)
         && isOwner(incoming().userId)
         && isValidEvent(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
         && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'date', 'type', 'recurrence', 'notifyTime', 'updatedAt']))
-        || (isScheduler() && incoming().diff(existing()).affectedKeys().hasOnly(['notified']));
-        
+        || (isScheduler() && incoming().diff(existing()).affectedKeys().hasOnly(['notified']) && incoming().notified == true);
+
       allow delete: if isValidId(eventId) && isOwner(existing().userId);
     }
 
+    // 6. Push Subscriptions
     match /push_subscriptions/{subId} {
       function isValidSubscription(data) {
         let hasCore = data.keys().hasAll(['userId', 'subscription', 'expired', 'createdAt']);
@@ -232,11 +241,13 @@ service cloud.firestore {
 
       allow read: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if isScheduler() || (isSignedIn() && isOwner(incoming().userId) && isValidSubscription(incoming()));
-      allow update: if isScheduler() || (isSignedIn() && isOwner(existing().userId) && isOwner(incoming().userId) && isValidSubscription(incoming()));
-      allow delete: if isScheduler() || (isSignedIn() && isOwner(existing().userId));
+      allow create: if isSignedIn() && isOwner(incoming().userId) && isValidSubscription(incoming());
+      allow update: if (isSignedIn() && isOwner(existing().userId) && isOwner(incoming().userId) && isValidSubscription(incoming()))
+        || (isScheduler() && incoming().diff(existing()).affectedKeys().hasOnly(['expired']) && incoming().expired == true && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt);
+      allow delete: if isSignedIn() && isOwner(existing().userId);
     }
 
+    // 7. Portfolio (Public read, isolated write)
     match /portfolio/{itemId} {
       function isValidPortfolio(data) {
         let hasCore = data.keys().hasAll(['userId', 'title', 'isPublic', 'createdAt', 'updatedAt']);
@@ -248,61 +259,90 @@ service cloud.firestore {
           && data.updatedAt is number;
         let pDesc = !('description' in data) || (data.description is string && data.description.size() <= 5000);
         let pCat = !('category' in data) || (data.category is string && data.category.size() <= 100);
-        let pPhoto = !('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1048400); 
+        let pPhoto = !('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1048400);
         let pMedia = !('mediaUrls' in data) || (data.mediaUrls is list && data.mediaUrls.size() <= 50 && (data.mediaUrls.size() == 0 || (data.mediaUrls.size() > 0 && data.mediaUrls[0] is string)));
         return hasCore && hasMaxKeys && isTypes && pDesc && pCat && pPhoto && pMedia;
       }
 
-      allow read: if isValidId(itemId); 
-      allow list: if true; 
-      
-      allow create: if isValidId(itemId) && isDashboardUser() && incoming().userId == request.auth.uid
+      allow read: if isValidId(itemId);
+      allow list: if true;
+
+      allow create: if isValidId(itemId) && isOwner(incoming().userId)
         && isValidPortfolio(incoming())
         && incoming().createdAt is number
         && incoming().updatedAt is number;
-        
-      allow update: if isValidId(itemId) && isDashboardUser()
+
+      allow update: if isValidId(itemId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
         && isValidPortfolio(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
         && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'photoUrl', 'mediaUrls', 'isPublic', 'updatedAt']);
-        
-      allow delete: if isValidId(itemId) && isDashboardUser();
+
+      allow delete: if isValidId(itemId) && isOwner(existing().userId);
     }
 
+    // 8. Leads (Public lead creation with valid target owner, isolated management)
     match /leads/{leadId} {
       function isValidLead(data) {
-        let hasCore = data.keys().hasAll(['name', 'phone', 'status', 'createdAt', 'updatedAt']);
+        let hasCore = data.keys().hasAll(['name', 'phone', 'status', 'createdAt', 'updatedAt', 'userId']);
         let hasMaxKeys = data.size() <= 15;
         let isTypes = data.name is string && data.name.size() <= 150
           && data.phone is string && data.phone.size() <= 50
           && data.status is string && data.status in ['new', 'contacted', 'converted', 'archived']
           && data.createdAt is number
           && data.updatedAt is number;
-        let pUserId = !('userId' in data) || (data.userId is string && data.userId.size() <= 128);
+        let pUserId = data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128;
         let pEmail = !('email' in data) || (data.email is string && data.email.size() <= 150);
         let pAddress = !('address' in data) || (data.address is string && data.address.size() <= 500);
         let pService = !('serviceType' in data) || (data.serviceType is string && data.serviceType.size() <= 150);
-        return hasCore && hasMaxKeys && isTypes && pEmail && pAddress && pService;
+        let pNotes = !('notes' in data) || (data.notes is string && data.notes.size() <= 5000);
+        return hasCore && hasMaxKeys && isTypes && pUserId && pEmail && pAddress && pService && pNotes;
       }
 
-      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      
+      allow read, list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
       allow create: if isValidId(leadId)
         && isValidLead(incoming())
+        && exists(/databases/$(database)/documents/users/$(incoming().userId))
         && incoming().createdAt is number
         && incoming().updatedAt is number
-        && (incoming().status == 'new' || incoming().status == 'contacted');
-        
-      allow update: if isValidId(leadId) && isVerifiedOwner(existing().userId)
+        && (!isSignedIn() ? (
+             incoming().status == 'new'
+             && incoming().userId == get(/databases/$(database)/documents/site_settings/public_config).data.ownerId
+           ) : isOwner(incoming().userId));
+
+      allow update: if isValidId(leadId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
         && isValidLead(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
-        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'name', 'phone', 'email', 'address', 'serviceType', 'updatedAt']);
-        
-      allow delete: if isVerifiedOwner(existing().userId);
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'name', 'phone', 'email', 'address', 'serviceType', 'notes', 'updatedAt']);
+
+      allow delete: if isOwner(existing().userId);
     }
-    
+
+    // 9. Notification Events (Scheduler lock / idempotency)
+    match /notification_events/{eventId} {
+      function isValidEventLock(data) {
+        let hasCore = data.keys().hasAll(['userId', 'type', 'originId', 'status']);
+        let hasMaxKeys = data.size() <= 8;
+        let isTypes = data.userId is string && data.userId.size() <= 128
+          && data.type is string && data.type.size() <= 50
+          && data.originId is string && data.originId.size() <= 128
+          && data.status is string && data.status in ['processing', 'sent', 'failed'];
+        let pReservedAt = !('reservedAt' in data) || (data.reservedAt is number);
+        let pSentAt = !('sentAt' in data) || (data.sentAt is number);
+        let pFailedAt = !('failedAt' in data) || (data.failedAt is number);
+        return hasCore && hasMaxKeys && isTypes && pReservedAt && pSentAt && pFailedAt;
+      }
+
+      allow get, list: if isScheduler();
+      allow create, update: if isScheduler() && isValidEventLock(incoming());
+      allow delete: if false;
+    }
+
+    // 10. Services (Public list, isolated management)
     match /services/{serviceId} {
       function isValidService(data) {
          let hasCore = data.keys().hasAll(['userId', 'name', 'createdAt', 'updatedAt']);
@@ -315,29 +355,73 @@ service cloud.firestore {
          let pPrice = !('price' in data) || (data.price is number);
          return hasCore && hasMaxKeys && isTypes && pDesc && pPrice;
       }
-      
-      allow read: if isValidId(serviceId); 
-      allow list: if true; 
-      
+
+      allow read: if isValidId(serviceId);
+      allow list: if true;
+
       allow create: if isValidId(serviceId) && isOwner(incoming().userId)
         && isValidService(incoming())
         && incoming().createdAt is number
         && incoming().updatedAt is number;
-        
+
       allow update: if isValidId(serviceId) && isOwner(existing().userId)
         && isOwner(incoming().userId)
         && isValidService(incoming())
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt is number
         && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'price', 'updatedAt']);
-        
+
       allow delete: if isValidId(serviceId) && isOwner(existing().userId);
     }
 
+    // 11. Site Settings (Public read, owner-isolated write)
     match /site_settings/{settingId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(incoming().userId);
+      allow update: if isSignedIn() && isOwner(existing().userId) && isOwner(incoming().userId);
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+    }
+
+    // 12. Financial Transactions
+    match /financial_transactions/{transactionId} {
+      function isValidFinancialTransaction(data) {
+        let hasCore = data.keys().hasAll(['userId', 'description', 'amount', 'dueDate', 'type', 'status', 'createdAt', 'updatedAt']);
+        let hasMaxKeys = data.size() <= 20;
+        let isTypes = data.userId == request.auth.uid
+          && data.description is string && data.description.size() <= 500
+          && data.amount is number
+          && data.dueDate is number
+          && data.type is string && data.type in ['income', 'expense']
+          && data.status is string && data.status in ['pending', 'paid', 'canceled']
+          && data.createdAt is number
+          && data.updatedAt is number;
+        let pOrigin = !('origin' in data) || (data.origin is string && data.origin in ['manual', 'service_order', 'quote']);
+        let pOriginId = !('originId' in data) || (data.originId == null || (data.originId is string && data.originId.size() <= 128));
+        let pClientId = !('clientId' in data) || (data.clientId == null || (data.clientId is string && data.clientId.size() <= 128));
+        let pClientName = !('clientName' in data) || (data.clientName == null || (data.clientName is string && data.clientName.size() <= 150));
+        let pCategory = !('category' in data) || (data.category is string && data.category.size() <= 100);
+        let pPayDate = !('paymentDate' in data) || (data.paymentDate == null || data.paymentDate is number);
+        let pPayMethod = !('paymentMethod' in data) || (data.paymentMethod == null || (data.paymentMethod is string && data.paymentMethod in ['pix', 'cash', 'card', 'transfer', 'other']));
+        let pNotes = !('notes' in data) || (data.notes == null || (data.notes is string && data.notes.size() <= 1000));
+        return hasCore && hasMaxKeys && isTypes && pOrigin && pOriginId && pClientId && pClientName && pCategory && pPayDate && pPayMethod && pNotes;
+      }
+
+      allow read: if isScheduler() || (isValidId(transactionId) && isOwner(existing().userId));
+      allow list: if isScheduler() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isValidId(transactionId) && isOwner(incoming().userId)
+        && isValidFinancialTransaction(incoming())
+        && incoming().createdAt is number
+        && incoming().updatedAt is number;
+
+      allow update: if isValidId(transactionId) && isOwner(existing().userId)
+        && isOwner(incoming().userId)
+        && isValidFinancialTransaction(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt is number
+        && incoming().diff(existing()).affectedKeys().hasOnly(['description', 'amount', 'dueDate', 'type', 'status', 'origin', 'originId', 'clientId', 'clientName', 'category', 'paymentDate', 'paymentMethod', 'notes', 'updatedAt']);
+
+      allow delete: if isValidId(transactionId) && isOwner(existing().userId);
     }
   }
 }
-

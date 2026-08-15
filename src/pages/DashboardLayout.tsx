@@ -1,27 +1,28 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../components/AuthProvider';
 import { Button } from '../components/ui/button';
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  Zap, 
-  Calendar as CalendarIcon, 
-  Image, 
-  Settings, 
-  LogOut, 
-  Tags, 
-  Menu, 
-  X, 
-  ArrowLeft, 
-  ExternalLink, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Zap,
+  Calendar as CalendarIcon,
+  Image,
+  Settings,
+  LogOut,
+  Tags,
+  Menu,
+  X,
+  ArrowLeft,
+  ExternalLink,
   Bell,
   Globe,
   FilePlus,
   UserPlus,
   ChevronRight,
   HardHat,
-  Sliders
+  Sliders,
+  CircleDollarSign
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { db } from '../lib/firebase';
@@ -69,6 +70,7 @@ const navItems = [
   { name: 'Clientes', path: '/app/clients', icon: Users },
   { name: 'Orçamentos', path: '/app/quotes', icon: FileText },
   { name: 'Ordens de Serviço', path: '/app/orders', icon: Zap },
+  { name: 'Financeiro', path: '/app/financial', icon: CircleDollarSign },
   { name: 'Serviços', path: '/app/services', icon: Tags },
   { name: 'Portfólio Web', path: '/app/portfolio', icon: Image },
   { name: 'Leads do Site', path: '/app/leads', icon: Users },
@@ -92,22 +94,22 @@ export default function DashboardLayout() {
       setLogoError(true);
     }
   };
-  
+
   const isFirstRun = useRef(true);
 
   useEffect(() => {
     if (!user) return;
-    
+
     // Listen for new leads targeted to current user
     const q = query(
-      collection(db, 'leads'), 
+      collection(db, 'leads'),
       where('userId', '==', user.uid),
       where('status', '==', 'new')
     );
-    
+
     const unsub = onSnapshot(q, (snapshot) => {
       setNewLeadsCount(snapshot.size);
-      
+
       if (isFirstRun.current) {
         isFirstRun.current = false;
         return;
@@ -162,8 +164,8 @@ export default function DashboardLayout() {
 
   // Active section checks
   const isRootApp = location.pathname === '/app' || location.pathname === '/app/';
-  const isMeuSiteTab = location.pathname.startsWith('/app/portfolio') || 
-                       location.pathname.startsWith('/app/services') || 
+  const isMeuSiteTab = location.pathname.startsWith('/app/portfolio') ||
+                       location.pathname.startsWith('/app/services') ||
                        location.pathname.startsWith('/app/leads');
   const isSettingsTab = location.pathname.startsWith('/app/settings');
   const isEmCampoTab = !isMeuSiteTab && !isSettingsTab;
@@ -176,11 +178,11 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xl border border-[#EAB308]/40 shrink-0 bg-slate-800 flex items-center justify-center font-black italic text-xs text-white">
               {!logoError ? (
-                <img 
-                  src={logoSrc} 
-                  alt="RA Logo" 
-                  className="w-full h-full object-cover" 
-                  referrerPolicy="no-referrer" 
+                <img
+                  src={logoSrc}
+                  alt="RA Logo"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
                   onError={handleLogoError}
                 />
               ) : (
@@ -205,7 +207,7 @@ export default function DashboardLayout() {
             </Button>
           </Link>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin scrollbar-thumb-slate-800">
           <nav className="flex flex-col gap-1.5" aria-label="Principal">
             {navItems.map(item => {
@@ -216,15 +218,15 @@ export default function DashboardLayout() {
                   key={item.path}
                   to={item.path}
                   className={`flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 group font-bold text-sm ${
-                    isActive 
-                      ? 'bg-[#EAB308] text-slate-950 font-black shadow-md shadow-[#EAB308]/20 scale-[1.01]' 
+                    isActive
+                      ? 'bg-[#EAB308] text-slate-950 font-black shadow-md shadow-[#EAB308]/20 scale-[1.01]'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <Icon className={`w-5 h-5 transition-transform ${isActive ? 'text-slate-950' : 'text-slate-400 group-hover:text-[#EAB308]'}`} aria-hidden="true" />
                   <span className="flex-1">{item.name}</span>
                   {item.path === '/app/leads' && newLeadsCount > 0 && (
-                    <span 
+                    <span
                       className={`text-[10px] font-black h-5 px-1.5 rounded-full flex items-center justify-center animate-pulse ${
                         isActive ? 'bg-slate-950 text-[#EAB308]' : 'bg-[#EAB308] text-slate-950'
                       }`}
@@ -260,17 +262,17 @@ export default function DashboardLayout() {
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col h-full relative overflow-hidden bg-slate-100">
-        
+
         {/* Top Header Bar */}
         <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md border border-[#EAB308] shrink-0 bg-slate-900 flex items-center justify-center font-black italic text-[10px] text-white">
               {!logoError ? (
-                <img 
-                  src={logoSrc} 
-                  alt="RA Logo" 
-                  className="w-full h-full object-cover" 
-                  referrerPolicy="no-referrer" 
+                <img
+                  src={logoSrc}
+                  alt="RA Logo"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
                   onError={handleLogoError}
                 />
               ) : (
@@ -296,10 +298,10 @@ export default function DashboardLayout() {
               </Button>
             </Link>
 
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="lg:hidden text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl h-9 w-9 border border-slate-200" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl h-9 w-9 border border-slate-200"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Abrir Menu"
             >
@@ -370,7 +372,7 @@ export default function DashboardLayout() {
 
             {/* Painel com Botões Operacionais Gigantes para a Rota Raiz (/app) */}
             {isRootApp && (
-              <motion.section 
+              <motion.section
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-3.5 mb-6"
@@ -378,8 +380,8 @@ export default function DashboardLayout() {
                 {/* Botões Operacionais Gigantes Lado a Lado */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {/* [📝 NOVA O.S. / Gerar Relatório] Em destaque Amarelo Elétrico (#EAB308) */}
-                  <Link 
-                    to="/app/orders" 
+                  <Link
+                    to="/app/orders"
                     className="group bg-[#EAB308] hover:bg-[#ca8a04] text-slate-950 p-5 md:p-6 rounded-2xl shadow-md border border-[#ca8a04]/30 transition-all transform active:scale-[0.98] flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
@@ -400,8 +402,8 @@ export default function DashboardLayout() {
                   </Link>
 
                   {/* [💰 ORÇAMENTO / Proposta Comercial] Em Destaque Claro com Borda Amarela */}
-                  <Link 
-                    to="/app/quotes" 
+                  <Link
+                    to="/app/quotes"
                     className="group bg-white hover:bg-slate-50 text-slate-900 p-5 md:p-6 rounded-2xl shadow-md border-2 border-[#EAB308] transition-all transform active:scale-[0.98] flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
@@ -467,7 +469,7 @@ export default function DashboardLayout() {
         </main>
 
         {/* Barra de Abas Fixas no Rodapé (Bottom Navigation) - 3 Pilares */}
-        <nav 
+        <nav
           className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 px-3 py-1.5 shadow-xl flex justify-around items-center"
           aria-label="Navegação Inferior"
         >
@@ -479,8 +481,8 @@ export default function DashboardLayout() {
             }`}
           >
             {isEmCampoTab && (
-              <motion.div 
-                layoutId="activeBottomTab" 
+              <motion.div
+                layoutId="activeBottomTab"
                 className="absolute inset-0 bg-[#EAB308]/15 rounded-xl border border-[#EAB308]/30"
               />
             )}
@@ -496,8 +498,8 @@ export default function DashboardLayout() {
             }`}
           >
             {isMeuSiteTab && (
-              <motion.div 
-                layoutId="activeBottomTab" 
+              <motion.div
+                layoutId="activeBottomTab"
                 className="absolute inset-0 bg-[#EAB308]/15 rounded-xl border border-[#EAB308]/30"
               />
             )}
@@ -520,8 +522,8 @@ export default function DashboardLayout() {
             }`}
           >
             {isSettingsTab && (
-              <motion.div 
-                layoutId="activeBottomTab" 
+              <motion.div
+                layoutId="activeBottomTab"
                 className="absolute inset-0 bg-[#EAB308]/15 rounded-xl border border-[#EAB308]/30"
               />
             )}
@@ -533,7 +535,7 @@ export default function DashboardLayout() {
         {/* Drawer Menu Mobile Completo */}
         <AnimatePresence>
           {isMobileMenuOpen && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: '100%' }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: '100%' }}
@@ -578,8 +580,8 @@ export default function DashboardLayout() {
                       to={item.path}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center gap-3.5 p-3.5 rounded-xl font-extrabold text-sm transition-all ${
-                        isActive 
-                          ? 'bg-[#EAB308] text-slate-950 font-black shadow-sm' 
+                        isActive
+                          ? 'bg-[#EAB308] text-slate-950 font-black shadow-sm'
                           : 'text-slate-700 hover:bg-slate-100'
                       }`}
                     >
@@ -650,8 +652,8 @@ export default function DashboardLayout() {
               </div>
 
               <div className="flex gap-2 mt-1">
-                <Link 
-                  to="/app/leads" 
+                <Link
+                  to="/app/leads"
                   onClick={() => setActiveNotification(null)}
                   className="flex-1"
                 >
@@ -659,8 +661,8 @@ export default function DashboardLayout() {
                     Atender Lead <ExternalLink className="w-3.5 h-3.5" />
                   </Button>
                 </Link>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveNotification(null)}
                   className="h-9 px-3 text-[10px] text-slate-500 hover:text-slate-900 hover:bg-slate-100 font-black uppercase tracking-wider rounded-xl border border-slate-200"
                 >
@@ -675,4 +677,3 @@ export default function DashboardLayout() {
     </div>
   );
 }
-
