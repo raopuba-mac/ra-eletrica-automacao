@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../../../components/ui/button';
-import { Palette, Sparkles, ShieldCheck } from 'lucide-react';
+import { Palette, Sparkles, ShieldCheck, Zap } from 'lucide-react';
 import { LOGO_IMG_PATH } from '../utils/settingsUtils';
 
 interface SettingsVisualIdentityProps {
@@ -10,6 +10,17 @@ interface SettingsVisualIdentityProps {
 export const SettingsVisualIdentity: React.FC<SettingsVisualIdentityProps> = ({
   onDownloadLogo,
 }) => {
+  const [logoSrc, setLogoSrc] = useState(LOGO_IMG_PATH);
+  const [logoError, setLogoError] = useState(false);
+
+  const handleLogoError = () => {
+    if (logoSrc === LOGO_IMG_PATH) {
+      setLogoSrc('/logo.jpg');
+    } else {
+      setLogoError(true);
+    }
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
       <div className="flex items-center gap-3 border-b pb-4">
@@ -31,13 +42,21 @@ export const SettingsVisualIdentity: React.FC<SettingsVisualIdentityProps> = ({
           <div className="absolute top-3 right-3 bg-blue-100 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-200 tracking-wider uppercase">
             Design Profissional
           </div>
-          <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-md border border-slate-200 shrink-0 bg-white mb-4 mt-2">
-            <img
-              src={LOGO_IMG_PATH}
-              alt="RA Logo Premium"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
+          <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-md border border-slate-200 shrink-0 bg-slate-900 mb-4 mt-2 flex items-center justify-center">
+            {!logoError ? (
+              <img
+                src={logoSrc}
+                alt="RA Logo Premium"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={handleLogoError}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-4 text-center">
+                <Zap className="w-12 h-12 text-[#EAB308] fill-[#EAB308]/20 mb-2" />
+                <span className="text-white font-black text-xs uppercase tracking-wider">RA Elétrica</span>
+              </div>
+            )}
           </div>
           <span className="text-slate-900 font-black tracking-widest text-sm uppercase">
             RA | Elétrica e Automação

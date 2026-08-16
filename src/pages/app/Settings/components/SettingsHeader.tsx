@@ -10,10 +10,10 @@ export const SettingsHeader: React.FC<SettingsHeaderProps> = ({ onSyncData }) =>
   return (
     <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-2xl font-black text-white italic tracking-tight uppercase">
+        <h1 className="text-2xl font-black text-slate-900 italic tracking-tight uppercase">
           Configurações do Perfil e Site
         </h1>
-        <p className="text-slate-400 text-sm">
+        <p className="text-slate-500 text-sm font-medium">
           Personalize os dados que aparecem na sua página pública.
         </p>
       </div>

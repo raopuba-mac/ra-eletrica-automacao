@@ -46,13 +46,23 @@ function sanitizeFirestoreData(data: any): any {
 }
 
 export const settingsService = {
-  async getUserProfile(userId: string): Promise<SettingsFormData | null> {
+  async getUserProfile(userId: string, authUser?: { displayName?: string | null; email?: string | null }): Promise<SettingsFormData | null> {
     try {
+      let profile: SettingsFormData = {
+        name: '',
+        companyName: '',
+        phone: '',
+        whatsappInfo: '',
+        websiteSlug: '',
+        bio: '',
+      };
+
+      // 1. Prioritize reading existing data from users/{userId}
       const docRef = doc(db, 'users', userId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        return {
+        profile = {
           name: data.name || '',
           companyName: data.companyName || '',
           phone: data.phone || '',
@@ -61,7 +71,35 @@ export const settingsService = {
           bio: data.bio || '',
         };
       }
-      return null;
+
+      // 2. Fallback to site_settings/public_config for empty fields ONLY if it belongs to the authenticated user
+      if (!profile.companyName || !profile.whatsappInfo || !profile.phone || !profile.name) {
+        try {
+          const configRef = doc(db, 'site_settings', 'public_config');
+          const configSnap = await getDoc(configRef);
+          if (configSnap.exists()) {
+            const cfg = configSnap.data();
+            const isOwner = cfg.userId === userId || cfg.ownerId === userId;
+            if (isOwner) {
+              if (!profile.companyName && cfg.companyName) profile.companyName = cfg.companyName;
+              if (!profile.whatsappInfo && cfg.whatsappInfo) profile.whatsappInfo = cfg.whatsappInfo;
+              if (!profile.phone && (cfg.phone || cfg.whatsappInfo)) profile.phone = cfg.phone || cfg.whatsappInfo;
+              if (!profile.name && cfg.name) profile.name = cfg.name;
+            }
+          }
+        } catch (_) {
+          // Fallback reading silent catch
+        }
+      }
+
+      // 3. Fallback to safe Auth info for name if still empty
+      if (!profile.name && authUser?.displayName) {
+        profile.name = authUser.displayName;
+      }
+
+      // 4. Remaining empty fields stay empty ("")
+
+      return profile;
     } catch (e) {
       handleFirestoreError(e, OperationType.GET, `users/${userId}`);
       throw e;

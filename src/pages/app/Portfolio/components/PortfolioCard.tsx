@@ -27,6 +27,8 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({
   onToggleVisibility,
   onDelete,
 }) => {
+  const [imgError, setImgError] = React.useState(false);
+
   return (
     <motion.div
       layout
@@ -37,20 +39,22 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({
       className="group bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden hover:border-[#EAB308] hover:shadow-md transition-all text-slate-900"
     >
       <div className="aspect-[4/3] w-full bg-slate-100 relative overflow-hidden">
-        {item.photoUrl ? (
+        {!imgError && item.photoUrl ? (
           <img
             src={item.photoUrl}
             alt={item.title}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            onError={() => setImgError(true)}
           />
-        ) : item.mediaUrls && item.mediaUrls.length > 0 ? (
+        ) : !imgError && item.mediaUrls && item.mediaUrls.length > 0 ? (
           <img
             src={item.mediaUrls[0]}
             alt={item.title}
             className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex items-center justify-center w-full h-full text-slate-400">
+          <div className="flex items-center justify-center w-full h-full text-slate-400 bg-slate-100">
             <ImageIcon className="w-12 h-12" />
           </div>
         )}

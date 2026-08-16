@@ -91,12 +91,12 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">Foto</span>
           )}
         </div>
-        
+
         <div className="hidden sm:flex items-center gap-4">
           <div className="flex gap-1">
             {items.map((_, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={`h-1 rounded-full transition-all duration-500 ${i === currentIndex ? 'w-8 bg-primary' : 'w-2 bg-white/20'}`}
               />
             ))}
@@ -107,7 +107,7 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
       <div className="relative group/viewer overflow-hidden rounded-[2.5rem] md:rounded-[4rem] bg-slate-900 border border-white/10 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.5)]">
         {/* Progress bar top */}
         <div className="absolute top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-white/5">
-          <motion.div 
+          <motion.div
             className="h-full bg-primary"
             initial={{ width: 0 }}
             animate={{ width: `${((currentIndex + 1) / items.length) * 100}%` }}
@@ -115,7 +115,7 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
           />
         </div>
 
-        <div 
+        <div
           ref={scrollRef}
           onScroll={handleScroll}
           onMouseDown={handleMouseDown}
@@ -130,16 +130,16 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
             return (
               <div key={index} className="flex-shrink-0 w-full h-[60vh] sm:h-[70vh] md:h-[80vh] min-h-[400px] max-h-[900px] snap-center flex items-center justify-center relative overflow-hidden bg-black/60">
                 {/* Background blur with Ken Burns effect */}
-                <motion.div 
+                <motion.div
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
                   className="absolute inset-0 opacity-30 blur-[120px] pointer-events-none scale-110"
                   style={{ backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                 />
-                
+
                 {ytMatch ? (
                   <div className="relative z-10 w-full h-full p-3 sm:p-6 md:p-12">
-                    <iframe 
+                    <iframe
                       src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0&modestbranding=1`}
                       className="w-full h-full rounded-3xl md:rounded-[3.5rem] shadow-2xl border border-white/10"
                       allowFullScreen
@@ -157,9 +157,9 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
                         transition={{ duration: 0.7, ease: [0.23, 1, 0.32, 1] }}
                         className="relative w-full h-full flex items-center justify-center"
                       >
-                        <img 
-                          src={url} 
-                          alt={`Mídia ${index + 1}`} 
+                        <img
+                          src={url}
+                          alt={`Mídia ${index + 1}`}
                           className="max-w-full max-h-full w-auto h-auto object-contain rounded-3xl md:rounded-[4rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 transition-transform duration-1000 group-hover/viewer:scale-[1.02]"
                           loading="lazy"
                         />
@@ -167,7 +167,7 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
                       </motion.div>
                     </AnimatePresence>
 
-                    <motion.button 
+                    <motion.button
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => setSelectedImage(url)}
@@ -186,7 +186,7 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
         {/* Navigation Overlays */}
         {items.length > 1 && (
           <>
-            <motion.button 
+            <motion.button
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: currentIndex === 0 ? 0 : 1 }}
               whileHover={{ scale: 1.1 }}
@@ -196,7 +196,7 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
             >
               <ChevronLeft className="w-8 h-8" />
             </motion.button>
-            <motion.button 
+            <motion.button
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: currentIndex === items.length - 1 ? 0 : 1 }}
               whileHover={{ scale: 1.1 }}
@@ -243,20 +243,20 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
       {/* Fullscreen Lightbox */}
       <AnimatePresence>
         {selectedImage && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/98 backdrop-blur-3xl p-2 md:p-12 overflow-hidden"
             onClick={() => setSelectedImage(null)}
           >
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               className="absolute top-6 right-6 md:top-10 md:right-10 flex items-center gap-4 z-[210]"
             >
               <span className="hidden md:block text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Toque para fechar</span>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.9)' }}
                 whileTap={{ scale: 0.9 }}
                 className="p-5 rounded-3xl bg-white/5 text-white hover:bg-red-500 transition-colors shadow-2xl border border-white/10"
@@ -265,8 +265,8 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
                 <X className="w-8 h-8" />
               </motion.button>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -274,10 +274,10 @@ function ProjectMediaViewer({ items }: { items: string[] }) {
               className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <img 
-                src={selectedImage} 
-                className="max-w-full max-h-full object-contain rounded-3xl shadow-[0_0_150px_rgba(0,0,0,0.8)] border border-white/5 select-none" 
-                alt="Fullscreen View" 
+              <img
+                src={selectedImage}
+                className="max-w-full max-h-full object-contain rounded-3xl shadow-[0_0_150px_rgba(0,0,0,0.8)] border border-white/5 select-none"
+                alt="Fullscreen View"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none rounded-3xl" />
             </motion.div>
@@ -299,7 +299,7 @@ export default function PortfolioPage() {
     window.scrollTo(0, 0);
 
     // Listens for customized category images
-    const unsubCats = onSnapshot(doc(db, 'site_settings', 'categories'), 
+    const unsubCats = onSnapshot(doc(db, 'site_settings', 'categories'),
       (docSnap) => {
         if (docSnap.exists()) {
           setCategoryPhotos(docSnap.data().images || {});
@@ -325,7 +325,7 @@ export default function PortfolioPage() {
              p.push({ id: d.id, ...data } as Portfolio);
           }
         });
-        
+
         // Sort manually by date
         setPortfolio(p.sort((a: any, b: any) => (b.updatedAt || 0) - (a.updatedAt || 0)));
       } catch (e: any) {
@@ -334,21 +334,21 @@ export default function PortfolioPage() {
         setLoading(false);
       }
     }
-    
+
     fetchData();
-    
+
     return () => {
       unsubCats();
     };
   }, []);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col gap-12 pb-24 pt-32 relative overflow-hidden"
     >
-      <SEO 
+      <SEO
         title="Nosso Portfólio de Projetos | RA Elétrica, Automação e Segurança Eletrônica"
         description="Conheça nossos projetos executados de instalação elétrica residencial/comercial, cercas de segurança, concertinas de proteção, automação de portões e CFTV profissional."
         keywords="portfólio, projetos elétricos, sistemas de cftv, cercas elétricas, concertinas, automação de ambientes, elétrica, Renan Augusto, RA"
@@ -356,7 +356,7 @@ export default function PortfolioPage() {
       />
       <div className="absolute inset-0 bg-dot-pattern opacity-5 -z-10"></div>
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -z-10 translate-x-1/2 -translate-y-1/2"></div>
-      
+
       {/* Portfolio Header */}
       <section className="container mx-auto px-4 text-center space-y-6">
         <motion.div
@@ -367,16 +367,16 @@ export default function PortfolioPage() {
           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Projetos Executados</span>
         </motion.div>
-        
-        <motion.h1 
+
+        <motion.h1
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="text-5xl md:text-7xl font-black tracking-tighter mb-6 text-slate-900 uppercase italic"
         >
           PORTFÓLIO & <br/> <span className="text-primary italic">TECNOLOGIA</span>
         </motion.h1>
-        
-        <motion.p 
+
+        <motion.p
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -390,7 +390,7 @@ export default function PortfolioPage() {
       <section id="services" className="mx-auto w-full bg-slate-950 text-slate-50 pt-32 pb-0 border-y border-white/5 relative overflow-hidden">
         <div className="absolute inset-0 bg-dot-pattern opacity-10"></div>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[400px] bg-primary/10 blur-[120px] rounded-full pointer-events-none"></div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between items-center text-center md:text-left mb-24 gap-8">
             <div className="space-y-4">
@@ -403,7 +403,7 @@ export default function PortfolioPage() {
                Atendimento especializado para residências, condomínios e indústrias que buscam o mais alto padrão técnico.
             </p>
           </div>
-          
+
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 max-w-7xl mx-auto mb-32">
             {!categoriesLoaded ? (
               STATIC_SERVICES.map((s) => (
@@ -411,7 +411,7 @@ export default function PortfolioPage() {
               ))
             ) : (
               STATIC_SERVICES.map((s, idx) => (
-              <motion.div 
+              <motion.div
                 key={s.id}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -419,11 +419,11 @@ export default function PortfolioPage() {
                 transition={{ delay: idx * 0.1, duration: 0.6 }}
                 className="relative group overflow-hidden bg-slate-900 rounded-[2rem] aspect-[4/5] border border-white/5 hover:border-primary/50 transition-all duration-700"
               >
-                <img 
+                <img
                   key={categoryPhotos[s.id] || s.image}
-                  src={categoryPhotos[s.id] || s.image} 
-                  alt={s.name} 
-                  className="absolute inset-0 w-full h-full object-cover opacity-50 transition-all duration-700 group-hover:scale-110 group-hover:opacity-100" 
+                  src={categoryPhotos[s.id] || s.image}
+                  alt={s.name}
+                  className="absolute inset-0 w-full h-full object-cover opacity-50 transition-all duration-700 group-hover:scale-110 group-hover:opacity-100"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     if (target.src !== s.image && !target.src.includes(s.image)) {
@@ -484,7 +484,7 @@ export default function PortfolioPage() {
              Transparência e qualidade em cada centímetro de fiação. Confira fotos reais de nossa execução no dia a dia.
            </p>
         </div>
-        
+
         <AnimatePresence mode="wait">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-40 gap-4">
@@ -492,7 +492,7 @@ export default function PortfolioPage() {
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Sincronizando Portfólio</span>
             </div>
           ) : portfolio.length === 0 ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -519,18 +519,31 @@ export default function PortfolioPage() {
                       render={
                         <button type="button" className="text-left w-full block bg-transparent p-0 border-none relative group transition-all duration-500 cursor-pointer outline-none">
                           <Card className="overflow-hidden bg-white border border-slate-200 rounded-[2.5rem] shadow-none group-hover:border-primary/20 group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-700 h-full flex flex-col">
-                            <div className="aspect-[4/3] w-full bg-slate-100 relative overflow-hidden">
+                            <div className="aspect-[4/3] w-full bg-slate-100 relative overflow-hidden flex items-center justify-center">
                               {p.photoUrl ? (
-                                <img src={p.photoUrl} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                                <img
+                                  src={p.photoUrl}
+                                  alt={p.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
                               ) : (p.mediaUrls && p.mediaUrls.length > 0) ? (
-                                <img src={p.mediaUrls[0]} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-                              ) : (
-                                <div className="flex items-center justify-center w-full h-full text-slate-300">
-                                  <Camera className="w-8 h-8" />
-                                </div>
-                              )}
+                                <img
+                                  src={p.mediaUrls[0]}
+                                  alt={p.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : null}
+                              <div className="absolute inset-0 -z-10 flex items-center justify-center text-slate-300">
+                                <Camera className="w-8 h-8" />
+                              </div>
                               <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity mix-blend-overlay duration-700" />
-                              
+
                               <div className="absolute top-4 left-4">
                                 <div className="bg-slate-950/80 backdrop-blur-md text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-full border border-white/10 tracking-widest leading-none">
                                   {p.category || 'PROJETO'}
@@ -560,14 +573,14 @@ export default function PortfolioPage() {
                         </button>
                       }
                     />
-                    
+
                     <DialogContent className="max-w-[1400px] w-[98vw] h-[98vh] p-0 md:p-4 overflow-hidden rounded-none md:rounded-[4rem] border-none md:border md:border-white/10 bg-slate-950 shadow-[0_0_100px_rgba(0,0,0,1)]">
                        <div className="flex flex-col h-full bg-slate-950 md:rounded-[3.5rem] overflow-hidden relative">
                          <div className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
                            <div className="p-4 md:p-12 space-y-12">
                             <header className="relative space-y-6 pt-10 md:pt-0">
                                <div className="space-y-4">
-                                 <motion.div 
+                                 <motion.div
                                    initial={{ opacity: 0, x: -20 }}
                                    animate={{ opacity: 1, x: 0 }}
                                    className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-full border border-white/10"
@@ -581,7 +594,7 @@ export default function PortfolioPage() {
                                  <div className="w-24 md:w-48 h-3 bg-primary rounded-full shadow-[0_0_40px_rgba(59,130,246,0.8)]"></div>
                                </div>
                             </header>
-                            
+
                             <div className="space-y-12">
                                {(() => {
                                  const mainImage = p.photoUrl || (p.mediaUrls && p.mediaUrls.length > 0 ? p.mediaUrls[0] : null);
@@ -589,13 +602,13 @@ export default function PortfolioPage() {
                                    ...(mainImage ? [mainImage] : []),
                                    ...(p.mediaUrls || [])
                                  ]));
-                                 
+
                                  if (allMedia.length === 0) return null;
-                                 
+
                                  return (
                                    <div className="space-y-12 pb-12">
                                      <ProjectMediaViewer items={allMedia} />
-                                     
+
                                      <div className="space-y-8 max-w-5xl mx-auto">
                                        <DialogDescription className="text-slate-300 text-base md:text-xl leading-relaxed font-medium italic block bg-white/5 p-6 md:p-8 rounded-[2rem] border border-white/5 shadow-inner">
                                          {p.description}

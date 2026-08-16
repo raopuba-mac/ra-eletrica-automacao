@@ -24,7 +24,7 @@ export function useSettings() {
     async function loadConfig() {
       if (!user) return;
       try {
-        const profile = await settingsService.getUserProfile(user.uid);
+        const profile = await settingsService.getUserProfile(user.uid, user);
         if (profile) {
           setForm(profile);
         }
