@@ -376,10 +376,39 @@ service cloud.firestore {
 
     // 11. Site Settings (Public read, owner-isolated write)
     match /site_settings/{settingId} {
-      allow read: if true;
-      allow create: if isSignedIn() && isOwner(incoming().userId);
-      allow update: if isSignedIn() && isOwner(existing().userId) && isOwner(incoming().userId);
-      allow delete: if isSignedIn() && isOwner(existing().userId);
+      function isSiteSettingsOwner() {
+        return isSignedIn()
+          && request.auth.uid == get(/databases/$(database)/documents/site_settings/public_config).data.ownerId;
+      }
+
+      allow get: if settingId in ['public_config', 'categories']
+        || isSiteSettingsOwner();
+
+      allow list: if isSiteSettingsOwner();
+
+      // public_config é criado apenas durante a configuração inicial.
+      // Depois de existente, não pode ser recriado pelo cliente.
+      allow create: if settingId != 'public_config'
+        && isSiteSettingsOwner()
+        && incoming().userId == request.auth.uid;
+
+      allow update: if isSiteSettingsOwner()
+        && existing().userId == request.auth.uid
+        && incoming().userId == request.auth.uid
+        && (
+          settingId != 'public_config'
+          || (
+            existing().ownerId == request.auth.uid
+            && existing().userId == request.auth.uid
+            && incoming().ownerId == request.auth.uid
+            && incoming().userId == request.auth.uid
+          )
+        );
+
+      // public_config é a âncora de propriedade do sistema.
+      allow delete: if settingId != 'public_config'
+        && isSiteSettingsOwner()
+        && existing().userId == request.auth.uid;
     }
 
     // 12. Financial Transactions

@@ -340,8 +340,12 @@ export const settingsService = {
           const docId = item.id || item._id || doc(collection(db, colName)).id;
           const { _id, id, ...docData } = item;
 
-          if (attachUserId) {
+          if (attachUserId || colName === 'site_settings') {
             docData.userId = userId;
+          }
+
+          if (colName === 'site_settings' && docId === 'public_config') {
+            docData.ownerId = userId;
           }
 
           if (docData.createdAt !== undefined && docData.createdAt !== null) {
