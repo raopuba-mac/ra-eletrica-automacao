@@ -1,35 +1,184 @@
-export function resizeImage(file: File, maxWidth = 800, maxHeight = 800): Promise<string> {
+/**
+ * Centralized Image Utility Handler
+ * Provides image compression, resizing, MIME validation, format conversion, and URL detection.
+ */
+
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/gif'
+];
+
+/**
+ * Checks if string is a Base64 encoded image or media string
+ */
+export function isBase64Image(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return value.startsWith('data:image/') || value.startsWith('data:video/') || value.startsWith('data:');
+}
+
+/**
+ * Resolves image source for <img> tags. Returns base64 or URL as-is.
+ */
+export function resolveImageSource(value: string | null | undefined, fallback = ''): string {
+  if (!value) return fallback;
+  return value;
+}
+
+/**
+ * Validates image file MIME type and size.
+ */
+export function validateImageFile(file: File, maxMb = 20): void {
+  if (!file) {
+    throw new Error('Nenhum arquivo fornecido.');
+  }
+
+  // Check type (allowing image/ or video/)
+  const isImageOrVideo = file.type.startsWith('image/') || file.type.startsWith('video/');
+  if (!isImageOrVideo && !ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
+    throw new Error(`Formato de arquivo não suportado: ${file.type}. Formatos permitidos: JPG, PNG, WEBP, HEIC.`);
+  }
+
+  const maxBytes = maxMb * 1024 * 1024;
+  if (file.size > maxBytes) {
+    throw new Error(`Arquivo muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O tamanho máximo permitido é ${maxMb}MB.`);
+  }
+}
+
+/**
+ * Resizes an image file and produces a compressed Data URL (Base64).
+ */
+export function resizeImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      validateImageFile(file);
+    } catch (err) {
+      return reject(err);
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return reject(new Error('Falha ao obter contexto 2D do canvas.'));
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+}
+
+/**
+ * Validates, resizes, compresses an image file and produces a Blob for Firebase Storage upload.
+ */
+export function prepareImageForUpload(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    try {
+      validateImageFile(file);
+    } catch (err) {
+      return reject(err);
+    }
+
+    // If file is non-image (e.g. video), return original file blob
+    if (!file.type.startsWith('image/')) {
+      return resolve(file);
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return reject(new Error('Falha ao obter contexto 2D do canvas.'));
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Falha ao converter imagem para Blob.'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+}
+
+/**
+ * Downloads or converts an HTTP URL / Data URL image to Base64 in memory (used for PDF generation).
+ */
+export async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
+  if (!imageUrl) return '';
+  if (isBase64Image(imageUrl)) return imageUrl;
+
+  try {
+    const res = await fetch(imageUrl, { mode: 'cors' });
+    const blob = await res.blob();
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = Math.round((height * maxWidth) / width);
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width = Math.round((width * maxHeight) / height);
-                        height = maxHeight;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
-                // 0.6 quality jpeg for smaller payload in firestore
-                resolve(canvas.toDataURL('image/jpeg', 0.6));
-            };
-        };
-        reader.onerror = error => reject(error);
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
+  } catch (e) {
+    console.error("Error loading image as base64 from URL:", imageUrl, e);
+    return '';
+  }
 }

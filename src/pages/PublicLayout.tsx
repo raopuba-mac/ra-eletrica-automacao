@@ -5,7 +5,6 @@ import { collection, query, getDocs, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../components/ui/button';
-import AIChatbot from '../components/AIChatbot';
 
 const logoImg = '/logo.jpg?v=6';
 
@@ -133,7 +132,6 @@ export default function PublicLayout() {
         <Outlet />
       </main>
 
-      <AIChatbot phone={phone} companyName={companyName} />
       <footer className="bg-slate-900 text-slate-400 py-12 text-center">
         <div className="container mx-auto px-4">
           <p>© {new Date().getFullYear()} {companyName}. Todos os direitos reservados.</p>

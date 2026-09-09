@@ -1,675 +1,100 @@
 import express from 'express';
 import path from 'path';
-import { GoogleGenAI } from '@google/genai';
-import fs from 'fs';
-import webpush from 'web-push';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, collection, getDocs, query, where, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { fileURLToPath } from 'url';
+import { config } from './server/config/index.js';
+import chatRouter from './server/routes/chat.js';
+import voiceRouter from './server/routes/voice.js';
+import notificationsRouter from './server/routes/notifications.js';
+import cronRouter from './server/routes/cron.js';
+import publicOsRouter from './server/routes/publicOs.js';
+import { startScheduler } from './server/services/scheduler.service.js';
+import { errorHandler } from './server/middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const firebaseConfig = (() => {
-  try {
-    // 1. Literal pattern to guide static analyzers/bundlers like Vercel nft
-    const p1 = path.join(process.cwd(), 'firebase-applet-config.json');
-    if (fs.existsSync(p1)) {
-      return JSON.parse(fs.readFileSync(p1, 'utf8'));
-    }
-    const p2 = path.join(__dirname, 'firebase-applet-config.json');
-    if (fs.existsSync(p2)) {
-      return JSON.parse(fs.readFileSync(p2, 'utf8'));
-    }
-    const p3 = path.join(__dirname, '..', 'firebase-applet-config.json');
-    if (fs.existsSync(p3)) {
-      return JSON.parse(fs.readFileSync(p3, 'utf8'));
-    }
-    // Fallback using import.meta.url URL conversion
-    const u1 = new URL('./firebase-applet-config.json', import.meta.url);
-    if (fs.existsSync(u1)) {
-      return JSON.parse(fs.readFileSync(u1, 'utf8'));
-    }
-    const u2 = new URL('../firebase-applet-config.json', import.meta.url);
-    if (fs.existsSync(u2)) {
-      return JSON.parse(fs.readFileSync(u2, 'utf8'));
-    }
-    throw new Error('Config file not found in any static paths');
-  } catch (err: any) {
-    console.warn('[Config Loader] Aviso: Não foi possível carregar firebase-applet-config.json do disco. Usando fallback de produção configurado:', err.message);
-    return {
-      projectId: "gen-lang-client-0334927020",
-      appId: "1:624386776331:web:ded7a425ce40304f0a960e",
-      apiKey: "AIzaSyBTYcLJ0fJKHJ-2EMTKdYF3vdSlVc4v_js",
-      authDomain: "gen-lang-client-0334927020.web.app",
-      firestoreDatabaseId: "ai-studio-d189549e-63b3-4ffe-b584-e1030a6caef4",
-      storageBucket: "gen-lang-client-0334927020.firebasestorage.app",
-      messagingSenderId: "624386776331",
-      measurementId: ""
-    };
-  }
-})();
-
-const vapidKeys = (() => {
-  try {
-    // 1. Literal pattern to guide static analyzers/bundlers like Vercel nft
-    const p1 = path.join(process.cwd(), 'vapid-keys.json');
-    if (fs.existsSync(p1)) {
-      return JSON.parse(fs.readFileSync(p1, 'utf8'));
-    }
-    const p2 = path.join(__dirname, 'vapid-keys.json');
-    if (fs.existsSync(p2)) {
-      return JSON.parse(fs.readFileSync(p2, 'utf8'));
-    }
-    const p3 = path.join(__dirname, '..', 'vapid-keys.json');
-    if (fs.existsSync(p3)) {
-      return JSON.parse(fs.readFileSync(p3, 'utf8'));
-    }
-    // Fallback using import.meta.url URL conversion
-    const u1 = new URL('./vapid-keys.json', import.meta.url);
-    if (fs.existsSync(u1)) {
-      return JSON.parse(fs.readFileSync(u1, 'utf8'));
-    }
-    const u2 = new URL('../vapid-keys.json', import.meta.url);
-    if (fs.existsSync(u2)) {
-      return JSON.parse(fs.readFileSync(u2, 'utf8'));
-    }
-    
-    // Auto-generate if missing
-    console.warn('[Config Loader] vapid-keys.json não encontrado. Gerando chaves temporárias/novas...');
-    const generated = webpush.generateVAPIDKeys();
-    try {
-      fs.writeFileSync(p1, JSON.stringify(generated, null, 2), 'utf8');
-      console.log('[Config Loader] Chaves VAPID geradas com sucesso e salvas em:', p1);
-    } catch (writeErr: any) {
-      console.warn('[Config Loader] Não foi possível salvar as chaves no disco:', writeErr.message);
-    }
-    return generated;
-  } catch (err: any) {
-    console.warn('[Config Loader] Aviso: Não foi possível carregar vapid-keys.json do disco. Usando fallback de produção configurado:', err.message);
-    return {
-      publicKey: "BEi0SpGn92dg-V-krlgixlPbTgDtZznbD21Bp7H4IOG19YhAmgMmo9DzrB0W44heVlqyOfWtTfb_6ci8DPClK3k",
-      privateKey: "ePa11iK-Wiqx35hJEi7-ljkEuuUNBRcXgwBHxdB55O0"
-    };
-  }
-})();
-
 const app = express();
-const PORT = 3000;
 
+// Global body parser
 app.use(express.json());
 
-  // CORS middleware to allow cross-origin requests
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
-
-  // Initialize Firebase Client App
-  const firebaseApp = initializeApp(firebaseConfig);
-  const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
-  const auth = getAuth(firebaseApp);
-  console.log('[Push Server] Firebase Client inicializado com sucesso.');
-
-  let isAuthInitialized = false;
-
-  async function ensureAuthenticated(): Promise<boolean> {
-    if (isAuthInitialized && auth.currentUser) {
-      return true;
-    }
-    
-    const email = 'scheduler@ra-eletrica.com';
-    const password = 'RA_Eletrica_Scheduler_Secure_Password_2026_!';
-    
-    try {
-      console.log('[Push Server] Tentando autenticar o scheduler...');
-      await signInWithEmailAndPassword(auth, email, password);
-      console.log('[Push Server] Autenticação do scheduler realizada com sucesso.');
-      isAuthInitialized = true;
-      return true;
-    } catch (error: any) {
-      if (error.code === 'auth/operation-not-allowed') {
-        console.error(`\n================================================================================`);
-        console.error(`[Push Server] ERRO DE AUTENTICAÇÃO: O provedor "E-mail/Senha" está DESATIVADO no Firebase.`);
-        console.error(`Para corrigir este problema e ativar notificações push em segundo plano:`);
-        console.error(`1. Acesse o console do seu projeto Firebase:`);
-        console.error(`   https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers`);
-        console.error(`2. Sob a aba "Método de login" (Sign-in method), ative o provedor "E-mail/Senha" (Email/Password).`);
-        console.error(`3. Salve as alterações.`);
-        console.error(`================================================================================\n`);
-        return false;
-      }
-
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
-        console.log('[Push Server] Usuário scheduler não encontrado. Criando nova conta...');
-        try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          console.log('[Push Server] Conta do scheduler criada e autenticada com sucesso.');
-          isAuthInitialized = true;
-          return true;
-        } catch (createError: any) {
-          if (createError.code === 'auth/operation-not-allowed') {
-            console.error(`\n================================================================================`);
-            console.error(`[Push Server] ERRO DE AUTENTICAÇÃO: O provedor "E-mail/Senha" está DESATIVADO no Firebase.`);
-            console.error(`Para corrigir este problema e ativar notificações push em segundo plano:`);
-            console.error(`1. Acesse o console do seu projeto Firebase:`);
-            console.error(`   https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers`);
-            console.error(`2. Sob a aba "Método de login" (Sign-in method), ative o provedor "E-mail/Senha" (Email/Password).`);
-            console.error(`3. Salve as alterações.`);
-            console.error(`================================================================================\n`);
-          } else {
-            console.error('[Push Server] Erro ao criar conta do scheduler:', createError);
-          }
-          return false;
-        }
-      } else {
-        console.error('[Push Server] Erro na autenticação do scheduler:', error);
-        return false;
-      }
-    }
+// CORS middleware to allow cross-origin requests
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
-
-  webpush.setVapidDetails(
-    'mailto:raop.uba@gmail.com',
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, OPTIONS, PUT, PATCH, DELETE'
   );
-
-  // Background scheduler to check agenda and trigger push notifications
-  async function checkAndSendNotifications() {
-    try {
-      const authenticated = await ensureAuthenticated();
-      if (!authenticated) {
-        // Silent return to avoid log flooding, since we already printed a clear, detailed instruction in ensureAuthenticated
-        return;
-      }
-      const now = Date.now();
-      console.log('[Push Scheduler] Verificando agendamentos pendentes...');
-      
-      const agendaRef = collection(db, 'agenda');
-      const querySnapshot = await getDocs(query(agendaRef, where('notified', '!=', true)));
-      
-      for (const d of querySnapshot.docs) {
-        const event = { id: d.id, ...d.data() } as any;
-        if (!event.date || !event.userId || event.notifyTime === 'none') continue;
-        
-        const diffMs = event.date - now;
-        let shouldNotify = false;
-        let timeLabel = '';
-
-        // 1 minute tolerance windows
-        if (event.notifyTime === 'at_event') {
-          if (diffMs <= 60000 && diffMs >= -120000) {
-            shouldNotify = true;
-            timeLabel = 'está agendado para agora!';
-          }
-        } else if (event.notifyTime === '15_min') {
-          if (diffMs <= 16 * 60000 && diffMs >= 14 * 60000) {
-            shouldNotify = true;
-            timeLabel = 'começa em 15 minutos.';
-          }
-        } else if (event.notifyTime === '1_hour') {
-          if (diffMs <= 61 * 60000 && diffMs >= 59 * 60000) {
-            shouldNotify = true;
-            timeLabel = 'começa em 1 hora.';
-          }
-        } else if (event.notifyTime === '24_hours') {
-          if (diffMs <= 24.1 * 60 * 60000 && diffMs >= 23.9 * 60 * 60000) {
-            shouldNotify = true;
-            timeLabel = 'está agendado para amanhã.';
-          }
-        }
-
-        if (shouldNotify) {
-          console.log(`[Push Scheduler] Enviando notificação para o evento: "${event.title}" do usuário: ${event.userId}`);
-          
-          const subsSnapshot = await getDocs(query(collection(db, 'push_subscriptions'), where('userId', '==', event.userId)));
-          
-          const payload = JSON.stringify({
-            title: `Lembrete de Compromisso: ${event.title}`,
-            body: `O seu agendamento "${event.title}" ${timeLabel}\nDetalhes: ${event.description || 'Sem descrição adicional'}`,
-            icon: '/logo.jpg',
-            badge: '/favicon.png',
-            data: {
-              url: '/app/agenda'
-            }
-          });
-
-          for (const subDoc of subsSnapshot.docs) {
-            const subData = subDoc.data() as any;
-            if (subData.subscription && !subData.expired) {
-              try {
-                await webpush.sendNotification(subData.subscription, payload);
-                console.log(`[Push Scheduler] Notificação enviada para sub: ${subDoc.id}`);
-              } catch (error: any) {
-                console.error(`[Push Scheduler] Erro ao enviar para sub ${subDoc.id}:`, error);
-                if (error.statusCode === 410 || error.statusCode === 404) {
-                  // Mark subscription as expired
-                  await setDoc(doc(db, 'push_subscriptions', subDoc.id), { ...subData, expired: true });
-                  console.log(`[Push Scheduler] Inscrição expirada marcada: ${subDoc.id}`);
-                }
-              }
-            }
-          }
-
-          // Mark event as notified so we don't notify again
-          await updateDoc(doc(db, 'agenda', event.id), { notified: true });
-        }
-      }
-    } catch (error) {
-      console.error('[Push Scheduler] Erro na verificação em segundo plano:', error);
-    }
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-Requested-With,content-type,Authorization'
+  );
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
   }
+  next();
+});
 
-  // API route for Gemini using modern SDK and gemini-3.5-flash with automatic model aliases fallback
-  app.post('/api/chat', async (req, res) => {
-    try {
-      const { message, history, stream } = req.body;
-      const key = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+// Mount modular API routers
+app.use('/api', chatRouter);
+app.use('/api', voiceRouter);
+app.use('/api', notificationsRouter);
+app.use('/api', cronRouter);
+app.use('/api', publicOsRouter);
 
-      if (!key || key.trim() === '') {
-        return res.status(500).json({ error: "API_KEY_MISSING", message: "A chave API do Gemini não foi encontrada no servidor." });
-      }
+// Global Error Handler for API routes
+app.use(errorHandler);
 
-      const ai = new GoogleGenAI({
-        apiKey: key,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
+// Vite middleware and server startup
+async function setupViteAndListen() {
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: {
+          middlewareMode: true,
+          hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
+        },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
+    // Only listen and start scheduler if NOT running in serverless environment (Vercel)
+    if (!config.isVercel) {
+      app.listen(config.port, '0.0.0.0', () => {
+        console.log(`Server running on http://localhost:${config.port}`);
       });
 
-      // Prune history to avoid token size or rate limit issues (retains last 6 messages / 3 interactions)
-      const maxHistoryLength = 6;
-      const prunedHistory = history && history.length > maxHistoryLength
-        ? history.slice(-maxHistoryLength)
-        : (history || []);
-
-      const systemInstructionText = `Você é o assistente virtual da RA | Elétrica, Automação e Segurança Eletrônica (do técnico Renan Augusto).
-Objetivo: Atendimento inicial, triagem de interesse e coleta de informações básicas.
-
-Seus Serviços:
-- Instalações Elétricas (Residenciais e Industriais)
-- Automação Residencial (Luzes, Portões, Som, Alexa)
-- Segurança Eletrônica (Câmeras CFTV, Alarmes)
-- Interfones e Fechaduras Inteligentes
-- Painéis Elétricos e Quadro de Distribuição
-
-Sua conduta:
-1. Seja educado, profissional e use termos técnicos apenas quando necessário para explicar algo.
-2. Identifique: (A) Nome completo do cliente, (B) Telefone de contato, (C) Qual o serviço desejado, (D) Se é para casa ou empresa, (E) Qual a cidade/bairro.
-3. Não forneça valores de mão de obra ou materiais, diga que isso requer análise técnica.
-4. Ao coletar todos os dados, encerre de forma acolhedora assim:
-
-"Perfeito! Já registrei e enviei sua solicitação de forma automática diretamente para o técnico Renan Augusto! Ele entrará em contato em breve.
-
-Aqui estão os dados coletados:
-* **Nome:** [Nome do Cliente]
-* **Telefone:** [Telefone]
-* **Serviço:** [Descreva aqui]
-* **Ambiente:** [Residencial/Comercial]
-* **Local:** [Bairro/Cidade]
-
-Se desejar acelerar o atendimento ou agendar de imediato, clique no botão verde **'Falar no WhatsApp'** logo abaixo para abrir um chat direto."`;
-
-      const chatHistory = prunedHistory.map((h: any) => ({
-        role: h.role === 'user' ? 'user' : 'model',
-        parts: [{ text: h.text || "..." }]
-      }));
-
-      // Helper to initialize chat session with specific model
-      const initChat = (modelName: string) => {
-        return ai.chats.create({
-          model: modelName,
-          config: {
-            systemInstruction: systemInstructionText
-          },
-          history: chatHistory
-        });
-      };
-
-      try {
-        const chat = initChat("gemini-3.5-flash");
-        if (stream === false) {
-          const response = await chat.sendMessage({ message: message });
-          return res.json({ text: response.text });
-        }
-
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no');
-
-        const streamResponse = await chat.sendMessageStream({ message: message });
-        for await (const chunk of streamResponse) {
-          const chunkText = chunk.text;
-          if (chunkText) {
-            res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
-          }
-        }
-        res.write('data: [DONE]\n\n');
-        res.end();
-      } catch (err: any) {
-        console.warn(`[Gemini Server] Falha ao usar o modelo gemini-3.5-flash (possível alta demanda). Tentando fallback...`, err.message);
-        
-        // Sequence of reliable backup models
-        const fallbackModels = ["gemini-flash-latest", "gemini-3.1-flash-lite"];
-        let success = false;
-
-        for (const fbModel of fallbackModels) {
-          try {
-            console.log(`[Gemini Server] Tentando modelo fallback: ${fbModel}`);
-            const chat = initChat(fbModel);
-            
-            if (stream === false) {
-              const response = await chat.sendMessage({ message: message });
-              res.json({ text: response.text });
-              success = true;
-              break;
-            } else {
-              if (!res.headersSent) {
-                res.setHeader('Content-Type', 'text/event-stream');
-                res.setHeader('Cache-Control', 'no-cache');
-                res.setHeader('Connection', 'keep-alive');
-                res.setHeader('X-Accel-Buffering', 'no');
-              }
-
-              const streamResponse = await chat.sendMessageStream({ message: message });
-              for await (const chunk of streamResponse) {
-                const chunkText = chunk.text;
-                if (chunkText) {
-                  res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
-                }
-              }
-              res.write('data: [DONE]\n\n');
-              res.end();
-              success = true;
-              break;
-            }
-          } catch (fbErr: any) {
-            console.error(`[Gemini Server] Falha também no modelo fallback ${fbModel}:`, fbErr.message);
-          }
-        }
-
-        if (!success) {
-          throw err; // Propagate original error if all fallbacks failed
-        }
-      }
-    } catch (e: any) {
-      console.error("Gemini Server Error:", e);
-      const errStr = String(e).toLowerCase();
-      const isQuotaError = errStr.includes("429") || 
-                           errStr.includes("quota") || 
-                           errStr.includes("limit") || 
-                           errStr.includes("exhausted") || 
-                           errStr.includes("rate") ||
-                           errStr.includes("demand") ||
-                           errStr.includes("unavailable") ||
-                           errStr.includes("503");
-
-      if (!res.headersSent) {
-          if (isQuotaError) {
-              res.status(429).json({ error: "RATE_LIMIT_EXCEEDED", message: "O limite de requisições do assistente foi atingido temporariamente." });
-          } else {
-              res.status(500).json({ error: e.message || String(e) });
-          }
-      } else {
-          const errObj = { error: isQuotaError ? "RATE_LIMIT_EXCEEDED" : (e.message || String(e)) };
-          res.write(`data: ${JSON.stringify(errObj)}\n\n`);
-          res.end();
-      }
+      // Start background scheduler
+      startScheduler(30000);
+    } else {
+      console.log(
+        '[Push Server] Executando em ambiente Serverless (Vercel). Escuta de porta desativada.'
+      );
     }
-  });
-
-  // API Route to extract quote information from voice/text transcription
-  app.post('/api/voice-budget-extractor', async (req, res) => {
-    try {
-      const { text } = req.body;
-      if (!text || text.trim() === '') {
-        return res.status(400).json({ error: "TEXT_MISSING", message: "Nenhum texto de transcrição foi enviado." });
-      }
-
-      const key = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-      if (!key || key.trim() === '') {
-        return res.status(500).json({ error: "API_KEY_MISSING", message: "A chave API do Gemini não foi encontrada no servidor." });
-      }
-
-      const ai = new GoogleGenAI({
-        apiKey: key,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
-
-      const generateExtractorContent = async (modelName: string) => {
-        return await ai.models.generateContent({
-          model: modelName,
-          contents: `Analise a seguinte transcrição de áudio de um serviço elétrico/automação em português brasileiro e extraia as informações de forma estruturada para preencher um orçamento.
-          
-Transcrição de áudio:
-"${text}"`,
-          config: {
-            systemInstruction: `Você é um assistente de inteligência artificial especializado em extrair itens de orçamento e informações de serviços a partir de comandos de voz ou notas faladas de eletricistas.
-Sua tarefa é retornar estritamente um objeto JSON com as seguintes propriedades:
-1. 'description' (string): Breve resumo ou descrição geral do serviço (máximo 120 caracteres).
-2. 'items' (array de objetos): Cada objeto deve representar um item/serviço com:
-   - 'name' (string): Nome descritivo do item ou do ponto de serviço (ex: 'Instalação de Chuveiro Elétrico', 'Ponto de tomada 20A').
-   - 'quantity' (integer): Quantidade (padrão: 1).
-   - 'price' (number): Preço unitário estimado em Reais (BRL). Se o preço for mencionado diretamente na transcrição (ex: "cinquenta reais cada" ou "total deu cem reais para duas"), extraia-o. Caso contrário, se o serviço corresponder a itens comuns, use valores razoáveis padrão (ex: Chuveiro: 150, Tomada comum: 80, Tomada especial: 120, Interruptor: 80, Ponto iluminação: 80, Fita LED/metro: 100, Quadro distribuição grande: 650, Quadro pequeno: 400). Se não fizer ideia, coloque 0.
-3. 'remarks' (string): Observações adicionais, alertas de segurança ou ferramentas/materiais necessários falados (ex: 'Trazer escada de 8 degraus').
-4. 'includesMaterial' (boolean): true se o usuário disser que materiais estão inclusos ou que o orçamento inclui material, senão false.
-5. 'discount' (number): Valor do desconto extra mencionado, senão 0.`,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                description: { type: "STRING" },
-                items: {
-                  type: "ARRAY",
-                  items: {
-                    type: "OBJECT",
-                    properties: {
-                      name: { type: "STRING" },
-                      quantity: { type: "INTEGER" },
-                      price: { type: "NUMBER" }
-                    },
-                    required: ["name", "quantity", "price"]
-                  }
-                },
-                remarks: { type: "STRING" },
-                includesMaterial: { type: "BOOLEAN" },
-                discount: { type: "NUMBER" }
-              },
-              required: ["description", "items", "remarks", "includesMaterial", "discount"]
-            }
-          }
-        });
-      };
-
-      let response;
-      try {
-        response = await generateExtractorContent("gemini-3.5-flash");
-      } catch (err: any) {
-        console.warn("[Voice Extractor] Falha com gemini-3.5-flash. Tentando fallback...", err.message);
-        const fallbacks = ["gemini-flash-latest", "gemini-3.1-flash-lite"];
-        let fbSuccess = false;
-        for (const fbModel of fallbacks) {
-          try {
-            console.log(`[Voice Extractor] Tentando fallback para modelo: ${fbModel}`);
-            response = await generateExtractorContent(fbModel);
-            fbSuccess = true;
-            break;
-          } catch (fbErr: any) {
-            console.error(`[Voice Extractor] Falha também com ${fbModel}:`, fbErr.message);
-          }
-        }
-        if (!fbSuccess) {
-          throw err;
-        }
-      }
-
-      const extractedText = response.text;
-      if (!extractedText) {
-        throw new Error("Resposta vazia do modelo Gemini.");
-      }
-
-      const parsedData = JSON.parse(extractedText.trim());
-      res.json(parsedData);
-    } catch (e: any) {
-      console.error("Voice Budget Extractor Error:", e);
-      res.status(500).json({ error: e.message || String(e) });
-    }
-  });
-
-  // GET VAPID public key
-  app.get('/api/notifications/vapid-public-key', (req, res) => {
-    res.json({ publicKey: vapidKeys.publicKey });
-  });
-
-  // POST Subscribe to Push Notifications
-  app.post('/api/notifications/subscribe', async (req, res) => {
-    try {
-      const authenticated = await ensureAuthenticated();
-      if (!authenticated) {
-        return res.status(403).json({
-          error: 'AUTH_METHOD_DISABLED',
-          message: `O provedor de autenticação "E-mail/Senha" está desativado no Firebase. Ative-o em https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers para registrar inscrições push.`
-        });
-      }
-      const { subscription, userId } = req.body;
-      if (!subscription || !userId) {
-        return res.status(400).json({ error: 'subscription e userId são obrigatórios' });
-      }
-
-      if (!subscription.endpoint) {
-        return res.status(400).json({ error: 'Endpoint da inscrição inválido' });
-      }
-
-      // Base64 hash for stable doc ID
-      const subscriptionHash = Buffer.from(subscription.endpoint).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
-      const subDocRef = doc(db, 'push_subscriptions', subscriptionHash);
-      
-      await setDoc(subDocRef, {
-        userId,
-        subscription,
-        expired: false,
-        createdAt: Date.now()
-      });
-
-      console.log(`[Push Server] Nova inscrição registrada para o usuário: ${userId}`);
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error('[Push Server] Erro ao registrar inscrição:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // POST Send test push notification
-  app.post('/api/notifications/test-push', async (req, res) => {
-    try {
-      const authenticated = await ensureAuthenticated();
-      if (!authenticated) {
-        return res.status(403).json({
-          error: 'AUTH_METHOD_DISABLED',
-          message: `O provedor de autenticação "E-mail/Senha" está desativado no Firebase. Ative-o em https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers para enviar notificações push.`
-        });
-      }
-      const { userId, title, body } = req.body;
-      if (!userId) {
-        return res.status(400).json({ error: 'userId é obrigatório' });
-      }
-
-      const querySnapshot = await getDocs(query(collection(db, 'push_subscriptions'), where('userId', '==', userId)));
-      
-      if (querySnapshot.empty) {
-        return res.status(404).json({ error: 'Nenhuma inscrição ativa encontrada para este usuário' });
-      }
-
-      const payload = JSON.stringify({
-        title: title || 'Teste RA Elétrica & Automação',
-        body: body || 'Este é um teste de notificação push em tempo real!',
-        icon: '/logo.jpg',
-        badge: '/favicon.png',
-        data: {
-          url: '/app/agenda'
-        }
-      });
-
-      let sentCount = 0;
-      for (const d of querySnapshot.docs) {
-        const subData = d.data() as any;
-        if (subData.subscription && !subData.expired) {
-          try {
-            await webpush.sendNotification(subData.subscription, payload);
-            sentCount++;
-          } catch (err: any) {
-            console.error(`[Push Server] Erro ao enviar para sub ${d.id}:`, err);
-            if (err.statusCode === 410 || err.statusCode === 404) {
-              await setDoc(doc(db, 'push_subscriptions', d.id), { ...subData, expired: true });
-            }
-          }
-        }
-      }
-
-      res.json({ success: true, sentCount });
-    } catch (error: any) {
-      console.error('[Push Server] Erro ao enviar teste:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Vite middleware for development
-  async function setupViteAndListen() {
-    try {
-      if (process.env.NODE_ENV !== "production") {
-        const { createServer: createViteServer } = await import('vite');
-        const vite = await createViteServer({
-          server: { middlewareMode: true },
-          appType: "spa",
-        });
-        app.use(vite.middlewares);
-      } else {
-        const distPath = path.join(process.cwd(), 'dist');
-        app.use(express.static(distPath));
-        app.get('*', (req, res) => {
-          res.sendFile(path.join(distPath, 'index.html'));
-        });
-      }
-
-      // Only listen and start scheduler if NOT running in serverless environment (Vercel)
-      if (!process.env.VERCEL) {
-        app.listen(PORT, "0.0.0.0", () => {
-          console.log(`Server running on http://localhost:${PORT}`);
-        });
-
-        // Start background scheduler
-        console.log('[Push Server] Iniciando scheduler em segundo plano...');
-        setInterval(checkAndSendNotifications, 30000); // Check every 30 seconds
-      } else {
-        console.log('[Push Server] Executando em ambiente Serverless (Vercel). Escuta de porta desativada.');
-      }
-    } catch (err) {
-      console.error('[Server Start Error] Erro ao inicializar o servidor Express/Vite:', err);
-    }
+  } catch (err) {
+    console.error(
+      '[Server Start Error] Erro ao inicializar o servidor Express/Vite:',
+      err
+    );
   }
+}
 
-  setupViteAndListen().catch((err) => {
-    console.error('[Server Start Fatal Error]', err);
-  });
+setupViteAndListen().catch((err) => {
+  console.error('[Server Start Fatal Error]', err);
+});
 
 export default app;

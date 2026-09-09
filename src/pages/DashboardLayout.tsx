@@ -21,7 +21,8 @@ import {
   UserPlus,
   ChevronRight,
   HardHat,
-  Sliders
+  Sliders,
+  CircleDollarSign
 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { db } from '../lib/firebase';
@@ -69,6 +70,7 @@ const navItems = [
   { name: 'Clientes', path: '/app/clients', icon: Users },
   { name: 'Orçamentos', path: '/app/quotes', icon: FileText },
   { name: 'Ordens de Serviço', path: '/app/orders', icon: Zap },
+  { name: 'Financeiro', path: '/app/financial', icon: CircleDollarSign },
   { name: 'Serviços', path: '/app/services', icon: Tags },
   { name: 'Portfólio Web', path: '/app/portfolio', icon: Image },
   { name: 'Leads do Site', path: '/app/leads', icon: Users },

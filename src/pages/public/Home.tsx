@@ -24,6 +24,7 @@ export default function Home() {
   const [companyName, setCompanyName] = useState('Elétrica, Automação e Segurança Eletrônica');
   const [bio, setBio] = useState('Olá! Eu sou Renan Augusto. Tenho dedicado minha carreira a oferecer soluções de alta qualidade em elétrica e automação.');
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
 
   useEffect(() => {
     async function loadPublicData() {
@@ -48,6 +49,9 @@ export default function Home() {
 
   const handleWhatsApp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmittingLead) return;
+    setIsSubmittingLead(true);
+
     const formElement = e.currentTarget;
     const formData = new FormData(formElement);
     const data = {
@@ -81,6 +85,8 @@ export default function Home() {
       });
     } catch (e) {
       console.error('Erro ao salvar lead:', e);
+    } finally {
+      setIsSubmittingLead(false);
     }
   };
 
@@ -316,8 +322,8 @@ export default function Home() {
                     <Label className="font-bold">🛠 Tipo de Serviço</Label>
                     <Input id="serviceType" name="serviceType" required placeholder="Ex: Câmeras, Elétrica, etc." className="rounded-xl h-12 border-slate-200" />
                   </div>
-                  <Button type="submit" size="lg" className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-lg font-bold mt-4">
-                    ENVIAR E CHAMAR NO WHATSAPP
+                  <Button type="submit" size="lg" disabled={isSubmittingLead} className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-lg font-bold mt-4 disabled:opacity-60">
+                    {isSubmittingLead ? 'ENVIANDO...' : 'ENVIAR E CHAMAR NO WHATSAPP'}
                   </Button>
                 </form>
               </DialogContent>

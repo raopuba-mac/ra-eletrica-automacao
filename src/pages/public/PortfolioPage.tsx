@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, limit, doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, limit, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -315,14 +315,33 @@ export default function PortfolioPage() {
     async function fetchData() {
       setLoading(true);
       try {
-        // Query for portfolio items - fetching and then filtering to avoid index requirements
-        const portSnap = await getDocs(query(collection(db, 'portfolio'), limit(30)));
+        const configSnap = await getDoc(doc(db, 'site_settings', 'public_config'));
+        if (!configSnap.exists()) {
+          setPortfolio([]);
+          return;
+        }
+
+        const configData = configSnap.data();
+        const canonicalOwnerId = configData?.ownerId;
+        if (!canonicalOwnerId || typeof canonicalOwnerId !== 'string') {
+          setPortfolio([]);
+          return;
+        }
+
+        const portSnap = await getDocs(
+          query(
+            collection(db, 'portfolio'),
+            where('userId', '==', canonicalOwnerId),
+            where('isPublic', '==', true),
+            limit(30)
+          )
+        );
+
         const p: Portfolio[] = [];
         portSnap.forEach(d => {
           const data = d.data();
-          // Show if isPublic is not explicitly false (handles legacy data)
-          if (data.isPublic !== false) {
-             p.push({ id: d.id, ...data } as Portfolio);
+          if (data.isPublic === true) {
+            p.push({ id: d.id, ...data } as Portfolio);
           }
         });
         
@@ -330,6 +349,7 @@ export default function PortfolioPage() {
         setPortfolio(p.sort((a: any, b: any) => (b.updatedAt || 0) - (a.updatedAt || 0)));
       } catch (e: any) {
         console.error("Error loading portfolio data:", e);
+        setPortfolio([]);
       } finally {
         setLoading(false);
       }
@@ -519,16 +539,29 @@ export default function PortfolioPage() {
                       render={
                         <button type="button" className="text-left w-full block bg-transparent p-0 border-none relative group transition-all duration-500 cursor-pointer outline-none">
                           <Card className="overflow-hidden bg-white border border-slate-200 rounded-[2.5rem] shadow-none group-hover:border-primary/20 group-hover:shadow-2xl group-hover:shadow-primary/10 transition-all duration-700 h-full flex flex-col">
-                            <div className="aspect-[4/3] w-full bg-slate-100 relative overflow-hidden">
+                            <div className="aspect-[4/3] w-full bg-slate-100 relative overflow-hidden flex items-center justify-center">
                               {p.photoUrl ? (
-                                <img src={p.photoUrl} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                                <img 
+                                  src={p.photoUrl} 
+                                  alt={p.title} 
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
                               ) : (p.mediaUrls && p.mediaUrls.length > 0) ? (
-                                <img src={p.mediaUrls[0]} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-                              ) : (
-                                <div className="flex items-center justify-center w-full h-full text-slate-300">
-                                  <Camera className="w-8 h-8" />
-                                </div>
-                              )}
+                                <img 
+                                  src={p.mediaUrls[0]} 
+                                  alt={p.title} 
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : null}
+                              <div className="absolute inset-0 -z-10 flex items-center justify-center text-slate-300">
+                                <Camera className="w-8 h-8" />
+                              </div>
                               <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity mix-blend-overlay duration-700" />
                               
                               <div className="absolute top-4 left-4">

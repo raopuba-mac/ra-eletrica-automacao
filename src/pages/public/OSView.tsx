@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Zap, Camera, Clock, CheckCircle2, Phone, ArrowLeft, Download } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '../../components/ui/button';
@@ -9,6 +7,9 @@ import SEO from '../../components/SEO';
 
 export default function OSView() {
   const { orderId } = useParams();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') || searchParams.get('t') || '';
+
   const [order, setOrder] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,26 +34,36 @@ export default function OSView() {
   const handleSign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderId || !sigName.trim()) return;
+    if (!token) {
+      alert('Token de compartilhamento ausente. Não é possível registrar a assinatura.');
+      return;
+    }
     setSigning(true);
     try {
-      const docRef = doc(db, 'serviceOrders', orderId);
-      const timestamp = Date.now();
-      await updateDoc(docRef, {
-        clientSignatureName: sigName,
-        clientSignatureDoc: sigDoc || '',
-        signedAt: timestamp,
-        updatedAt: timestamp
+      const res = await fetch(`/api/public/os/${orderId}/sign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          clientSignatureName: sigName.trim(),
+          clientSignatureDoc: sigDoc.trim(),
+        }),
       });
-      setOrder((prev: any) => ({
-        ...prev,
-        clientSignatureName: sigName,
-        clientSignatureDoc: sigDoc || '',
-        signedAt: timestamp,
-        updatedAt: timestamp
-      }));
-    } catch(err) {
-      console.error("Erro ao registrar assinatura:", err);
-      alert("Falha ao registrar assinatura digital. Por favor, tente novamente.");
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setOrder((prev: any) => ({
+          ...prev,
+          clientSignatureName: data.clientSignatureName,
+          clientSignatureDoc: data.clientSignatureDoc,
+          signedAt: data.signedAt,
+        }));
+      } else {
+        alert(data.error || 'Falha ao registrar assinatura digital.');
+      }
+    } catch (err) {
+      console.error('Erro ao registrar assinatura:', err);
+      alert('Falha ao registrar assinatura digital. Por favor, tente novamente.');
     } finally {
       setSigning(false);
     }
@@ -61,32 +72,24 @@ export default function OSView() {
   useEffect(() => {
     async function fetchOS() {
       if (!orderId) return;
+      if (!token) {
+        setError('Token de compartilhamento ausente. Solicite um link válido ao profissional.');
+        setLoading(false);
+        return;
+      }
       try {
-        const orderSnap = await getDoc(doc(db, 'serviceOrders', orderId));
-        if (orderSnap.exists()) {
-          const orderData = orderSnap.data();
-          setOrder({ id: orderSnap.id, ...orderData });
+        const res = await fetch(`/api/public/os/${orderId}?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
 
-          // Fetch client info
-          if (orderData.clientId) {
-            const clientSnap = await getDoc(doc(db, 'clients', orderData.clientId));
-            if (clientSnap.exists()) {
-              setClient(clientSnap.data());
-            }
-          }
-
-          // Fetch user profile (company details)
-          if (orderData.userId) {
-            const userSnap = await getDoc(doc(db, 'users', orderData.userId));
-            if (userSnap.exists()) {
-              setCompanyProfile(userSnap.data());
-            }
-          }
+        if (res.ok) {
+          setOrder(data);
+          setClient({ name: data.clientName, phone: data.companyPhone });
+          setCompanyProfile({ companyName: data.companyName, phone: data.companyPhone });
         } else {
-          setError('Ordem de Serviço não encontrada.');
+          setError(data.error || 'Ordem de Serviço não encontrada.');
         }
       } catch (err) {
-        console.error("Error fetching OS:", err);
+        console.error('Error fetching OS:', err);
         setError('Ocorreu um erro ao carregar os dados.');
       } finally {
         setLoading(false);
@@ -94,7 +97,7 @@ export default function OSView() {
     }
 
     fetchOS();
-  }, [orderId]);
+  }, [orderId, token]);
 
   if (loading) {
     return (

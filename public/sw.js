@@ -1,5 +1,5 @@
 // Service Worker for RA Elétrica & Automação PWA and Offline Support
-const CACHE_NAME = 'ra-electrica-v11';
+const CACHE_NAME = 'ra-electrica-v14';
 const OFFLINE_URL = '/index.html';
 
 // Assets that are critical for offline boot
@@ -9,24 +9,31 @@ const PRECACHE_ASSETS = [
   '/logo.jpg',
 ];
 
-// Install Event - Pre-cache core assets
+// Allow page to immediately activate a new Service Worker
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Install Event - Pre-cache core assets & skip waiting
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Pre-caching core assets');
+      console.log('[Service Worker v14] Pre-caching core assets');
       return cache.addAll(PRECACHE_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate Event - Clean old caches and claim clients
+// Activate Event - Clean all old caches and claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('[Service Worker] Cleaning old cache:', cache);
+            console.log('[Service Worker] Cleaning old stale cache:', cache);
             return caches.delete(cache);
           }
         })
@@ -35,7 +42,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event - Dynamic cache with network fallback and offline navigation
+// Fetch Event - Dynamic network-first strategy with cache fallback
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -68,6 +75,13 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
+        .then((response) => {
+          if (response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
         .catch(() => {
           console.log('[Service Worker] Navigation offline, serving index.html shell');
           return caches.match(OFFLINE_URL);
@@ -76,39 +90,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static Assets (CSS, JS, Fonts, Images) - Cache First with Network Fallback
+  // Static Assets (JS, CSS, fonts, images) - Network First with Cache Fallback
+  // This guarantees updates to UI and text colors are instantly seen without getting stuck in stale cache
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return from cache, fetch in background to revalidate (Stale-While-Revalidate)
-        fetch(request).then((networkResponse) => {
-          if (networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse));
-          }
-        }).catch(() => {/* Ignore network errors during background revalidation */});
-        
-        return cachedResponse;
-      }
-
-      // Fetch from network, then cache and return
-      return fetch(request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+    fetch(request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
         }
-
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseToCache);
-        });
-
         return networkResponse;
-      }).catch(() => {
-        // Fallback for image requests when offline
-        if (request.destination === 'image') {
-          return caches.match('/logo.jpg');
-        }
-      });
-    })
+      })
+      .catch(() => {
+        // When offline, fallback to cache
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          if (request.destination === 'image') {
+            return caches.match('/logo.jpg');
+          }
+        });
+      })
   );
 });
 

@@ -129,6 +129,34 @@
     -moz-text-size-adjust: 100%;
   }
 
+  /* Ensure inputs and textareas have opaque, high-contrast readable text in all browsers and iOS WebKit */
+  input, textarea, select {
+    -webkit-text-fill-color: currentColor;
+    opacity: 1;
+  }
+
+  /* Specific explicit color guards for dark container inputs */
+  .bg-\[\#1E293B\] input,
+  .bg-\[\#1E293B\] textarea,
+  .bg-\[\#0B0F19\] input,
+  .bg-\[\#0B0F19\] textarea,
+  input.bg-\[\#0B0F19\],
+  textarea.bg-\[\#0B0F19\] {
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+    caret-color: #EAB308;
+  }
+
+  /* Specific explicit color guards for light inputs */
+  input.bg-white,
+  textarea.bg-white,
+  input.bg-slate-50,
+  textarea.bg-slate-50 {
+    color: #0f172a;
+    -webkit-text-fill-color: #0f172a;
+    caret-color: #0f172a;
+  }
+
   /* Optimize headings globally for mobile-first legibility */
   h1, .text-6xl, .text-7xl, .text-8xl {
     @apply tracking-tight leading-[1.1] md:leading-[1.05] font-black;
