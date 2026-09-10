@@ -1,5 +1,5 @@
 // Service Worker for RA Elétrica & Automação PWA and Offline Support
-const CACHE_NAME = 'ra-electrica-v14';
+const CACHE_NAME = 'ra-electrica-v15';
 const OFFLINE_URL = '/index.html';
 
 // Assets that are critical for offline boot
@@ -20,7 +20,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker v14] Pre-caching core assets');
+      console.log('[Service Worker v15] Pre-caching core assets');
       return cache.addAll(PRECACHE_ASSETS);
     }).then(() => self.skipWaiting())
   );

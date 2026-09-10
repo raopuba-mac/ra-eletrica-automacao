@@ -11,7 +11,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
-import { OperationType, handleFirestoreError } from '../../../../lib/error';
+import { OperationType, handleFirestoreError } from '../../../../lib/firestoreOps';
 import { storageService } from '../../../../services/storage/storageService';
 import { PortfolioItem } from '../types/portfolio.types';
 

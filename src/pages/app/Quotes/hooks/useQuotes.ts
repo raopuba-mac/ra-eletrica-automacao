@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
 import { useAuth } from '../../../../components/AuthProvider';
-import { OperationType, handleFirestoreError } from '../../../../lib/error';
+import { OperationType, handleFirestoreError } from '../../../../lib/firestoreOps';
 import { Quote, Client, ToastState, QuoteItem } from '../types/quote.types';
 
 export function useQuotes() {

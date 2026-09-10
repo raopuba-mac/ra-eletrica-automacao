@@ -10,7 +10,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
-import { OperationType, handleFirestoreError } from '../../../../lib/error';
+import { OperationType, handleFirestoreError } from '../../../../lib/firestoreOps';
 import { Lead } from '../types/lead.types';
 
 export const leadService = {

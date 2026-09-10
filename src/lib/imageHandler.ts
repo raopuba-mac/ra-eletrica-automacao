@@ -35,9 +35,10 @@ export function validateImageFile(file: File, maxMb = 20): void {
     throw new Error('Nenhum arquivo fornecido.');
   }
 
-  // Check type (allowing image/ or video/)
-  const isImageOrVideo = file.type.startsWith('image/') || file.type.startsWith('video/');
-  if (!isImageOrVideo && !ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
+  // Check type (allowing image/ or video/ or files with valid image extensions on iOS/Safari)
+  const hasImageExtension = /\.(jpe?g|png|webp|heic|heif|gif|bmp|svg|mp4|mov)$/i.test(file.name || '');
+  const isImageOrVideo = (file.type && (file.type.startsWith('image/') || file.type.startsWith('video/'))) || hasImageExtension;
+  if (!isImageOrVideo && file.type && !ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
     throw new Error(`Formato de arquivo não suportado: ${file.type}. Formatos permitidos: JPG, PNG, WEBP, HEIC.`);
   }
 

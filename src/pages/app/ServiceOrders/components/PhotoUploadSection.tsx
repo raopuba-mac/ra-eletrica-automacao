@@ -66,6 +66,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       await processUploadedFiles(e.target.files);
+      e.target.value = '';
     }
   };
 

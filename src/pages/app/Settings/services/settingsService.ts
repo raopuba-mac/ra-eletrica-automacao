@@ -11,7 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
-import { OperationType, handleFirestoreError } from '../../../../lib/error';
+import { OperationType, handleFirestoreError } from '../../../../lib/firestoreOps';
 import {
   SettingsFormData,
   BackupData,

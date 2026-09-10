@@ -166,9 +166,9 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Camera className="w-3.5 h-3.5 text-[#EAB308]" /> Anexar Fotos do Projeto</span>
+                  <span className="flex items-center gap-1.5"><Camera className="w-3.5 h-3.5 text-[#EAB308]" /> Fotos do Serviço / Projeto</span>
                   {isUploadingPhoto && (
-                    <span className="text-[9px] text-amber-400 flex items-center gap-1 animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> Enviando...</span>
+                    <span className="text-[9px] text-amber-400 flex items-center gap-1 animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> Anexando foto...</span>
                   )}
                 </Label>
                 <div className="grid grid-cols-3 gap-2">
@@ -177,25 +177,29 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       <img src={p} alt={`Projeto ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       <button
                         type="button"
-                        onClick={() => setPhotos(photos.filter((_, i) => i !== idx))}
-                        className="absolute inset-0 bg-slate-950/70 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPhotos(photos.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-lg p-1.5 shadow-lg transition-transform flex items-center justify-center cursor-pointer z-10"
+                        title="Remover foto"
                       >
-                        <Trash2 className="w-4 h-4 text-rose-400" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                   {photos.length < 9 && (
-                    <label className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed border-slate-700 hover:border-[#EAB308] bg-[#0B0F19] hover:bg-[#0B0F19]/80 rounded-2xl cursor-pointer transition-all ${isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <div className="flex flex-col items-center gap-1">
-                        {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin text-[#EAB308]" /> : <ImageIcon className="w-4 h-4 text-slate-400" />}
-                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider">{isUploadingPhoto ? 'Enviando' : 'Adicionar'}</span>
+                    <div className={`relative flex flex-col items-center justify-center aspect-square border-2 border-dashed border-slate-700 hover:border-[#EAB308] bg-[#0B0F19] hover:bg-[#0B0F19]/80 rounded-2xl cursor-pointer transition-all ${isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <div className="flex flex-col items-center gap-1 pointer-events-none">
+                        {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin text-[#EAB308]" /> : <Camera className="w-4 h-4 text-[#EAB308]" />}
+                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider">{isUploadingPhoto ? 'Enviando...' : '+ Foto'}</span>
                       </div>
                       <input 
                         type="file" 
                         accept="image/*" 
                         multiple
                         disabled={isUploadingPhoto}
-                        className="hidden" 
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" 
                         onChange={async (e) => {
                           const files = e.target.files;
                           if (files && files.length > 0) {
@@ -205,21 +209,25 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                             const folderPath = storageService.getQuotePath(userId, editingQuote?.id || 'draft');
                             for (let i = 0; i < files.length; i++) {
                               try {
-                                const downloadUrl = await storageService.prepareAndUploadImage(files[i], folderPath, 1200, 1200);
-                                newPhotos.push(downloadUrl);
+                                const downloadUrl = await storageService.prepareAndUploadImage(files[i], folderPath, 900, 900, 0.72);
+                                if (downloadUrl) {
+                                  newPhotos.push(downloadUrl);
+                                }
                               } catch (err: any) {
                                 console.error("Error uploading quote image:", err);
-                                showToast(err.message || 'Erro ao enviar foto do orçamento', 'error');
+                                showToast(err.message || 'Erro ao processar imagem', 'error');
                               }
                             }
                             if (newPhotos.length > 0) {
                               setPhotos(prev => [...prev, ...newPhotos]);
+                              showToast(`${newPhotos.length} foto(s) anexada(s) com sucesso!`, 'success');
                             }
                             setIsUploadingPhoto(false);
+                            e.target.value = '';
                           }
                         }}
                       />
-                    </label>
+                    </div>
                   )}
                 </div>
               </div>

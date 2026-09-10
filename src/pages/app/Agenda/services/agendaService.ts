@@ -9,7 +9,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
-import { OperationType, handleFirestoreError } from '../../../../lib/error';
+import { OperationType, handleFirestoreError } from '../../../../lib/firestoreOps';
 import { AgendaEvent, AgendaEventFormData } from '../types/agenda.types';
 import { urlBase64ToUint8Array } from '../utils/agendaUtils';
 

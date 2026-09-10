@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../../components/AuthProvider';
-import { handleFirestoreError, OperationType } from '../../../../lib/error';
+import { handleFirestoreError, OperationType } from '../../../../lib/firestoreOps';
 import { agendaService } from '../services/agendaService';
 import { AgendaEvent, AgendaEventFormData, EventToDelete } from '../types/agenda.types';
 

@@ -1,6 +1,6 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../../lib/firebase';
-import { prepareImageForUpload } from '../../lib/imageHandler';
+import { prepareImageForUpload, resizeImage } from '../../lib/imageHandler';
 
 /**
  * Generates a unique filename preserving extension or defaulting to .jpg
@@ -36,18 +36,44 @@ export const storageService = {
 
   /**
    * Prepares (resizes/compresses) an image and uploads it to Firebase Storage.
+   * When Firebase Storage is unavailable, unconfigured, or throws permission/storage errors,
+   * it seamlessly falls back to returning a high-efficiency compressed Data URL (Base64).
    */
   async prepareAndUploadImage(
     file: File,
     storagePathFolder: string,
-    maxWidth = 1200,
-    maxHeight = 1200,
-    quality = 0.8
+    maxWidth = 900,
+    maxHeight = 900,
+    quality = 0.72
   ): Promise<string> {
-    const processedBlob = await prepareImageForUpload(file, maxWidth, maxHeight, quality);
-    const fileName = generateUniqueFileName(file);
-    const fullPath = `${storagePathFolder}/${fileName}`;
-    return this.uploadFile(processedBlob, fullPath);
+    try {
+      const processedBlob = await prepareImageForUpload(file, maxWidth, maxHeight, quality);
+      const fileName = generateUniqueFileName(file);
+      const fullPath = `${storagePathFolder}/${fileName}`;
+      
+      try {
+        const downloadUrl = await this.uploadFile(processedBlob, fullPath);
+        return downloadUrl;
+      } catch (storageError: any) {
+        console.warn(`[StorageService] Firebase Storage indisponível (${storageError?.message || 'Storage desativado'}). Convertendo imagem com compressão direta para Base64...`);
+        
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (reader.result) {
+              resolve(reader.result as string);
+            } else {
+              reject(new Error('Falha ao converter imagem para exibição'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Erro ao ler imagem processada'));
+          reader.readAsDataURL(processedBlob);
+        });
+      }
+    } catch (err: any) {
+      console.warn('[StorageService] Processamento padrão de imagem falhou, usando fallback direto via resizeImage:', err);
+      return await resizeImage(file, maxWidth, maxHeight, quality);
+    }
   },
 
   /**

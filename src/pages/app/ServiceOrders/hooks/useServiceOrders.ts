@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
 import { useAuth } from '../../../../components/AuthProvider';
-import { OperationType, handleFirestoreError } from '../../../../lib/error';
+import { OperationType, handleFirestoreError } from '../../../../lib/firestoreOps';
 import { ServiceOrder, Client, ServiceOrderFormData } from '../types/serviceOrder.types';
 import { FinancialTransaction, PaymentFormData } from '../../Financial/types/financial.types';
 import { financialService } from '../../Financial/services/financialService';
