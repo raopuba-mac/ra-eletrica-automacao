@@ -21,57 +21,55 @@ function generateUniqueFileName(file?: File): string {
 export const storageService = {
   /**
    * Uploads a File or Blob to Firebase Storage and returns its public download URL.
+   * Enforces a strict 2.5-second timeout to prevent infinite hanging when Storage is unconfigured or blocked.
    */
   async uploadFile(blobOrFile: Blob | File, path: string): Promise<string> {
-    try {
+    const uploadPromise = (async () => {
       const storageRef = ref(storage, path);
       const snapshot = await uploadBytes(storageRef, blobOrFile);
       const downloadUrl = await getDownloadURL(snapshot.ref);
       return downloadUrl;
-    } catch (error: any) {
-      console.error(`[StorageService] Upload error at path "${path}":`, error);
-      throw new Error(`Falha no upload da imagem: ${error.message || 'Erro desconhecido'}`);
-    }
+    })();
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Tempo limite do Firebase Storage esgotado')), 2500)
+    );
+
+    return Promise.race([uploadPromise, timeoutPromise]);
   },
 
   /**
    * Prepares (resizes/compresses) an image and uploads it to Firebase Storage.
-   * When Firebase Storage is unavailable, unconfigured, or throws permission/storage errors,
+   * When Firebase Storage is unavailable, unconfigured, or throws permission/storage errors/timeouts,
    * it seamlessly falls back to returning a high-efficiency compressed Data URL (Base64).
    */
   async prepareAndUploadImage(
     file: File,
     storagePathFolder: string,
-    maxWidth = 900,
-    maxHeight = 900,
-    quality = 0.72
+    maxWidth = 800,
+    maxHeight = 800,
+    quality = 0.65
   ): Promise<string> {
+    // 1. Generate optimized local compressed Base64 first (guaranteed and instant)
+    let fallbackBase64 = '';
+    try {
+      fallbackBase64 = await resizeImage(file, maxWidth, maxHeight, quality);
+    } catch (resizeErr) {
+      console.warn('[StorageService] Falha no resizeImage prévio:', resizeErr);
+    }
+
     try {
       const processedBlob = await prepareImageForUpload(file, maxWidth, maxHeight, quality);
       const fileName = generateUniqueFileName(file);
       const fullPath = `${storagePathFolder}/${fileName}`;
-      
-      try {
-        const downloadUrl = await this.uploadFile(processedBlob, fullPath);
-        return downloadUrl;
-      } catch (storageError: any) {
-        console.warn(`[StorageService] Firebase Storage indisponível (${storageError?.message || 'Storage desativado'}). Convertendo imagem com compressão direta para Base64...`);
-        
-        return await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (reader.result) {
-              resolve(reader.result as string);
-            } else {
-              reject(new Error('Falha ao converter imagem para exibição'));
-            }
-          };
-          reader.onerror = () => reject(new Error('Erro ao ler imagem processada'));
-          reader.readAsDataURL(processedBlob);
-        });
+
+      const downloadUrl = await this.uploadFile(processedBlob, fullPath);
+      return downloadUrl;
+    } catch (storageError: any) {
+      console.warn(`[StorageService] Firebase Storage indisponível (${storageError?.message || 'timeout'}). Usando compressão direta Base64.`);
+      if (fallbackBase64) {
+        return fallbackBase64;
       }
-    } catch (err: any) {
-      console.warn('[StorageService] Processamento padrão de imagem falhou, usando fallback direto via resizeImage:', err);
       return await resizeImage(file, maxWidth, maxHeight, quality);
     }
   },

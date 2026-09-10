@@ -8,6 +8,7 @@ import { Camera, ImageIcon, Trash2, Zap, Loader2 } from 'lucide-react';
 import { QuoteItemsTable } from './QuoteItemsTable';
 import { VoiceBudgetModal } from './VoiceBudgetModal';
 import { PointsCalculator } from './PointsCalculator';
+import { resizeImage } from '../../../../lib/imageHandler';
 import { storageService } from '../../../../services/storage/storageService';
 import { useAuth } from '../../../../components/AuthProvider';
 import { Client, Quote, QuoteItem, CalculatorPointsMap, PresetType } from '../types/quote.types';
@@ -201,27 +202,34 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                         disabled={isUploadingPhoto}
                         className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" 
                         onChange={async (e) => {
-                          const files = e.target.files;
-                          if (files && files.length > 0) {
-                            setIsUploadingPhoto(true);
+                          const fileList = e.target.files;
+                          if (!fileList || fileList.length === 0) return;
+
+                          const files = Array.from(fileList);
+                          setIsUploadingPhoto(true);
+
+                          try {
                             const newPhotos: string[] = [];
-                            const userId = user?.uid || 'anonymous';
-                            const folderPath = storageService.getQuotePath(userId, editingQuote?.id || 'draft');
                             for (let i = 0; i < files.length; i++) {
                               try {
-                                const downloadUrl = await storageService.prepareAndUploadImage(files[i], folderPath, 900, 900, 0.72);
-                                if (downloadUrl) {
-                                  newPhotos.push(downloadUrl);
+                                const base64 = await resizeImage(files[i], 800, 800, 0.65);
+                                if (base64) {
+                                  newPhotos.push(base64);
                                 }
                               } catch (err: any) {
-                                console.error("Error uploading quote image:", err);
-                                showToast(err.message || 'Erro ao processar imagem', 'error');
+                                console.error("Erro ao processar imagem:", err);
+                                showToast(err?.message || 'Erro ao processar foto', 'error');
                               }
                             }
+
                             if (newPhotos.length > 0) {
                               setPhotos(prev => [...prev, ...newPhotos]);
                               showToast(`${newPhotos.length} foto(s) anexada(s) com sucesso!`, 'success');
                             }
+                          } catch (globalErr: any) {
+                            console.error("Erro geral no upload de fotos:", globalErr);
+                            showToast('Não foi possível anexar as fotos selecionadas.', 'error');
+                          } finally {
                             setIsUploadingPhoto(false);
                             e.target.value = '';
                           }

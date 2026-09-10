@@ -34,33 +34,36 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
     const userId = user?.uid || 'anonymous';
     const folderPath = storageService.getServiceOrderPath(userId, orderId || 'draft', type);
 
-    const newUrls: string[] = [];
-    for (const file of fileArray) {
-      try {
-        if (file.type.startsWith('image/')) {
-          const downloadUrl = await storageService.prepareAndUploadImage(file, folderPath, 1200, 1200);
-          newUrls.push(downloadUrl);
-        } else if (file.type.startsWith('video/')) {
-          const reader = new FileReader();
-          await new Promise<void>((resolve) => {
-            reader.onload = (event) => {
-              const result = event.target?.result as string;
-              if (result) newUrls.push(result);
-              resolve();
-            };
-            reader.readAsDataURL(file);
-          });
+    try {
+      const newUrls: string[] = [];
+      for (const file of fileArray) {
+        try {
+          if (file.type.startsWith('image/')) {
+            const downloadUrl = await storageService.prepareAndUploadImage(file, folderPath, 900, 900, 0.7);
+            newUrls.push(downloadUrl);
+          } else if (file.type.startsWith('video/')) {
+            const reader = new FileReader();
+            await new Promise<void>((resolve) => {
+              reader.onload = (event) => {
+                const result = event.target?.result as string;
+                if (result) newUrls.push(result);
+                resolve();
+              };
+              reader.readAsDataURL(file);
+            });
+          }
+        } catch (err: any) {
+          console.error("Failed to upload image:", err);
+          alert(err.message || 'Erro ao enviar imagem.');
         }
-      } catch (err: any) {
-        console.error("Failed to upload image to Firebase Storage:", err);
-        alert(err.message || 'Erro ao enviar imagem.');
       }
-    }
 
-    if (newUrls.length > 0) {
-      onChangeAttachments([...attachments, ...newUrls]);
+      if (newUrls.length > 0) {
+        onChangeAttachments([...attachments, ...newUrls]);
+      }
+    } finally {
+      setIsUploading(false);
     }
-    setIsUploading(false);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
