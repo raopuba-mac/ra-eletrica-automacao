@@ -264,8 +264,13 @@ service cloud.firestore {
         return hasCore && hasMaxKeys && isTypes && pDesc && pCat && pPhoto && pMedia;
       }
 
-      allow read: if isValidId(itemId);
-      allow list: if true;
+      allow get: if isValidId(itemId) && (
+        (isSignedIn() && isOwner(existing().userId)) ||
+        (existing().isPublic == true && existing().userId == get(/databases/$(database)/documents/site_settings/public_config).data.ownerId)
+      );
+
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid)
+        || (resource.data.isPublic == true && resource.data.userId == get(/databases/$(database)/documents/site_settings/public_config).data.ownerId);
 
       allow create: if isValidId(itemId) && isOwner(incoming().userId)
         && isValidPortfolio(incoming())
