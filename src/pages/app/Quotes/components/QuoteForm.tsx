@@ -8,6 +8,7 @@ import { Camera, ImageIcon, Trash2, Zap, Loader2 } from 'lucide-react';
 import { QuoteItemsTable } from './QuoteItemsTable';
 import { VoiceBudgetModal } from './VoiceBudgetModal';
 import { PointsCalculator } from './PointsCalculator';
+import { resizeImage } from '../../../../lib/imageHandler';
 import { storageService } from '../../../../services/storage/storageService';
 import { useAuth } from '../../../../components/AuthProvider';
 import { Client, Quote, QuoteItem, CalculatorPointsMap, PresetType } from '../types/quote.types';
@@ -121,16 +122,16 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
         <div className={`flex-1 overflow-y-auto p-6 space-y-6 flex flex-col ${isCalculatorActive ? 'md:border-r border-slate-800 md:max-w-[50%]' : ''}`}>
           <div className="space-y-6 flex-1">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cliente Solicitante *</Label>
+              <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Cliente Solicitante *</Label>
               <Select onValueChange={(val) => setForm({...form, clientId: val})} value={form.clientId} required>
-                <SelectTrigger className="h-14 border-slate-800 bg-[#0B0F19] text-white rounded-2xl focus:ring-[#EAB308] w-full">
-                  <div className="flex-1 text-left font-semibold">
+                <SelectTrigger className="h-14 border-slate-300 bg-white !text-slate-900 data-placeholder:!text-slate-400 rounded-2xl focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] w-full">
+                  <div className="flex-1 text-left font-semibold text-slate-900">
                     {clients.find(c => c.id === form.clientId)?.name || <SelectValue placeholder="Selecione..." />}
                   </div>
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-slate-800 bg-[#0B0F19] text-white p-2">
+                <SelectContent className="rounded-2xl border-slate-200 bg-white text-slate-900 p-2 shadow-xl">
                   {clients.map(c => (
-                    <SelectItem key={c.id} value={c.id} className="rounded-xl focus:bg-[#EAB308] focus:text-[#0B0F19] py-3">{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id} className="rounded-xl text-slate-900 focus:bg-[#EAB308] focus:text-[#0B0F19] py-3 font-semibold">{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -153,9 +154,9 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
             {/* Optional description notes/remarks */}
             <div className="space-y-2">
-              <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Observações Adicionais</Label>
+              <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Observações Adicionais</Label>
               <Textarea
-                className="min-h-[70px] border-slate-100 bg-slate-50 rounded-2xl p-4 focus:ring-primary resize-none text-xs font-medium italic"
+                className="min-h-[70px] border-slate-300 bg-white !text-slate-900 rounded-2xl p-4 focus:bg-white focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] resize-none text-xs font-medium italic placeholder:!text-slate-400 selection:bg-[#EAB308]/30 selection:text-slate-950"
                 value={remarks}
                 onChange={e => setRemarks(e.target.value)}
                 placeholder="Forma de pagamento, prazo de execução ou observações gerais..."
@@ -165,79 +166,94 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
             {/* Photo upload field allowing multiple photos in a neat responsive grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Camera className="w-3.5 h-3.5 text-primary" /> Anexar Fotos do Projeto</span>
+                <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5"><Camera className="w-3.5 h-3.5 text-[#EAB308]" /> Fotos do Serviço / Projeto</span>
                   {isUploadingPhoto && (
-                    <span className="text-[9px] text-amber-400 flex items-center gap-1 animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> Enviando...</span>
+                    <span className="text-[9px] text-amber-400 flex items-center gap-1 animate-pulse"><Loader2 className="w-3 h-3 animate-spin" /> Anexando foto...</span>
                   )}
                 </Label>
                 <div className="grid grid-cols-3 gap-2">
                   {photos.map((p, idx) => (
-                    <div key={idx} className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 flex-shrink-0 group">
+                    <div key={idx} className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F19] flex-shrink-0 group">
                       <img src={p} alt={`Projeto ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       <button
                         type="button"
-                        onClick={() => setPhotos(photos.filter((_, i) => i !== idx))}
-                        className="absolute inset-0 bg-slate-950/70 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPhotos(photos.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-lg p-1.5 shadow-lg transition-transform flex items-center justify-center cursor-pointer z-10"
+                        title="Remover foto"
                       >
-                        <Trash2 className="w-4 h-4 text-rose-400" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                   {photos.length < 9 && (
-                    <label className={`flex flex-col items-center justify-center aspect-square border-2 border-dashed border-slate-200 hover:border-primary bg-slate-50 hover:bg-slate-100/50 rounded-2xl cursor-pointer transition-all ${isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <div className="flex flex-col items-center gap-1">
-                        {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <ImageIcon className="w-4 h-4 text-slate-400" />}
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">{isUploadingPhoto ? 'Enviando' : 'Adicionar'}</span>
+                    <div className={`relative flex flex-col items-center justify-center aspect-square border-2 border-dashed border-slate-700 hover:border-[#EAB308] bg-[#0B0F19] hover:bg-[#0B0F19]/80 rounded-2xl cursor-pointer transition-all ${isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <div className="flex flex-col items-center gap-1 pointer-events-none">
+                        {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin text-[#EAB308]" /> : <Camera className="w-4 h-4 text-[#EAB308]" />}
+                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider">{isUploadingPhoto ? 'Enviando...' : '+ Foto'}</span>
                       </div>
                       <input
                         type="file"
                         accept="image/*"
                         multiple
                         disabled={isUploadingPhoto}
-                        className="hidden"
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                         onChange={async (e) => {
-                          const files = e.target.files;
-                          if (files && files.length > 0) {
-                            setIsUploadingPhoto(true);
+                          const fileList = e.target.files;
+                          if (!fileList || fileList.length === 0) return;
+
+                          const files = Array.from(fileList);
+                          setIsUploadingPhoto(true);
+
+                          try {
                             const newPhotos: string[] = [];
-                            const userId = user?.uid || 'anonymous';
-                            const folderPath = storageService.getQuotePath(userId, editingQuote?.id || 'draft');
                             for (let i = 0; i < files.length; i++) {
                               try {
-                                const downloadUrl = await storageService.prepareAndUploadImage(files[i], folderPath, 1200, 1200);
-                                newPhotos.push(downloadUrl);
+                                const base64 = await resizeImage(files[i], 800, 800, 0.65);
+                                if (base64) {
+                                  newPhotos.push(base64);
+                                }
                               } catch (err: any) {
-                                console.error("Error uploading quote image:", err);
-                                showToast(err.message || 'Erro ao enviar foto do orçamento', 'error');
+                                console.error("Erro ao processar imagem:", err);
+                                showToast(err?.message || 'Erro ao processar foto', 'error');
                               }
                             }
+
                             if (newPhotos.length > 0) {
                               setPhotos(prev => [...prev, ...newPhotos]);
+                              showToast(`${newPhotos.length} foto(s) anexada(s) com sucesso!`, 'success');
                             }
+                          } catch (globalErr: any) {
+                            console.error("Erro geral no upload de fotos:", globalErr);
+                            showToast('Não foi possível anexar as fotos selecionadas.', 'error');
+                          } finally {
                             setIsUploadingPhoto(false);
+                            e.target.value = '';
                           }
                         }}
                       />
-                    </label>
+                    </div>
                   )}
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Desconto R$</Label>
+                  <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">Desconto R$</Label>
                   <Input
                     placeholder="Valor desconto"
                     type="number"
-                    className="h-14 border-slate-100 bg-slate-50 rounded-2xl text-center text-xl font-black focus:ring-primary text-rose-500"
+                    className="h-14 border-slate-300 bg-white rounded-2xl text-center text-xl font-black focus:bg-white focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] !text-slate-900 placeholder:!text-slate-400 selection:bg-[#EAB308]/30 selection:text-slate-950"
                     value={discount || ''}
                     onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))}
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 border-2 border-slate-100 rounded-2xl bg-white shadow-sm">
-                  <Label className="text-[11px] font-black text-slate-500 uppercase tracking-wide cursor-pointer" htmlFor="includesMaterial">
+                <div className="flex items-center justify-between p-4 border border-slate-800 rounded-2xl bg-[#0B0F19] shadow-sm">
+                  <Label className="text-[11px] font-black text-slate-200 uppercase tracking-wide cursor-pointer" htmlFor="includesMaterial">
                     Material Incluso
                   </Label>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -248,12 +264,12 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       checked={includesMaterial}
                       onChange={(e) => setIncludesMaterial(e.target.checked)}
                     />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#EAB308]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#EAB308]"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border-2 border-slate-100 rounded-2xl bg-white shadow-sm">
-                  <Label className="text-[11px] font-black text-slate-500 uppercase tracking-wide cursor-pointer" htmlFor="applyCashDiscount">
+                <div className="flex items-center justify-between p-4 border border-slate-800 rounded-2xl bg-[#0B0F19] shadow-sm">
+                  <Label className="text-[11px] font-black text-slate-200 uppercase tracking-wide cursor-pointer" htmlFor="applyCashDiscount">
                     Exibir 15% Desc. à Vista
                   </Label>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -264,12 +280,12 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       checked={applyCashDiscount}
                       onChange={(e) => setApplyCashDiscount(e.target.checked)}
                     />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#EAB308]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#EAB308]"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border-2 border-slate-100 rounded-2xl bg-white shadow-sm">
-                  <Label className="text-[11px] font-black text-slate-500 uppercase tracking-wide cursor-pointer" htmlFor="hideDetailedPrices">
+                <div className="flex items-center justify-between p-4 border border-slate-800 rounded-2xl bg-[#0B0F19] shadow-sm">
+                  <Label className="text-[11px] font-black text-slate-200 uppercase tracking-wide cursor-pointer" htmlFor="hideDetailedPrices">
                     Ocultar Valores Detalhados
                   </Label>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -280,20 +296,20 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
                       checked={hideDetailedPrices}
                       onChange={(e) => setHideDetailedPrices(e.target.checked)}
                     />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#EAB308]/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#EAB308]"></div>
                   </label>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-4 bg-white sticky bottom-0 flex flex-col gap-3 mt-4 border-t border-slate-100">
-            <div className="p-3 bg-slate-50 rounded-xl flex justify-between items-center text-slate-900 border border-slate-100">
+          <div className="pt-4 bg-[#1E293B] sticky bottom-0 flex flex-col gap-3 mt-4 border-t border-slate-800">
+            <div className="p-3 bg-[#0B0F19] rounded-xl flex justify-between items-center text-white border border-slate-800">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Previsto:</span>
-              <span className="text-lg font-black italic text-primary">R$ {Number(form.totalAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              <span className="text-lg font-black italic text-[#EAB308]">R$ {Number(form.totalAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
 
-            <Button type="submit" size="lg" className="w-full font-black italic uppercase h-14 rounded-2xl shadow-xl shadow-primary/20 tracking-tighter text-sm bg-primary hover:bg-primary/90 text-white transition-all hover:scale-[1.01]">
+            <Button type="submit" size="lg" className="w-full font-black italic uppercase h-14 rounded-2xl shadow-xl shadow-[#EAB308]/20 tracking-tighter text-sm bg-[#EAB308] hover:bg-[#ca8a04] text-[#0B0F19] transition-all hover:scale-[1.01]">
               {editingQuote ? 'Confirmar Ajustes' : 'Emitir Documento'}
             </Button>
           </div>

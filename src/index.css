@@ -129,6 +129,58 @@
     -moz-text-size-adjust: 100%;
   }
 
+  /* Ensure inputs and textareas have opaque, high-contrast readable text in all browsers and iOS WebKit */
+  input, textarea, select {
+    -webkit-text-fill-color: currentColor;
+    opacity: 1;
+  }
+
+  /* Specific explicit color guards for dark inputs */
+  input.bg-\[\#0B0F19\],
+  textarea.bg-\[\#0B0F19\],
+  input.bg-\[\#1E293B\],
+  textarea.bg-\[\#1E293B\] {
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+    caret-color: #EAB308;
+  }
+
+  /* Specific explicit color guards for light inputs (including inside dark modals on Safari/iPad) */
+  input.bg-white,
+  textarea.bg-white,
+  input.bg-slate-50,
+  textarea.bg-slate-50,
+  .bg-\[\#1E293B\] input.bg-white,
+  .bg-\[\#1E293B\] textarea.bg-white,
+  .bg-\[\#1E293B\] input.bg-slate-50,
+  .bg-\[\#1E293B\] textarea.bg-slate-50,
+  .bg-\[\#0B0F19\] input.bg-white,
+  .bg-\[\#0B0F19\] textarea.bg-white,
+  .bg-\[\#0B0F19\] input.bg-slate-50,
+  .bg-\[\#0B0F19\] textarea.bg-slate-50 {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #0f172a;
+  }
+
+  input.bg-white::placeholder,
+  textarea.bg-white::placeholder,
+  input.bg-slate-50::placeholder,
+  textarea.bg-slate-50::placeholder {
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b !important;
+    opacity: 1;
+  }
+
+  input.bg-white::selection,
+  textarea.bg-white::selection,
+  input.bg-slate-50::selection,
+  textarea.bg-slate-50::selection {
+    background-color: rgba(234, 179, 8, 0.35);
+    color: #0f172a;
+    -webkit-text-fill-color: #0f172a;
+  }
+
   /* Optimize headings globally for mobile-first legibility */
   h1, .text-6xl, .text-7xl, .text-8xl {
     @apply tracking-tight leading-[1.1] md:leading-[1.05] font-black;
