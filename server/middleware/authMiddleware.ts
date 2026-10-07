@@ -50,32 +50,6 @@ export interface AuthenticatedRequest extends Request {
     email?: string;
   };
 }
-
-export async function authenticateFirebaseUser(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({
-      error: 'UNAUTHORIZED',
-      message: 'Acesso negado. Token de autenticação não fornecido.',
-    });
-  }
-
-  const idToken = authHeader.split('Bearer ')[1]?.trim();
-  if (!idToken) {
-    return res.status(401).json({
-      error: 'UNAUTHORIZED',
-      message: 'Acesso negado. Token de autenticação em formato inválido.',
-    });
-  }
-
-  let adminAuth;
-  try {
-    adminAuth = getFirebaseAdminAuth();
-  } catch (configErr: any) {
     console.error(
       '[Auth Middleware] Erro de configuração do Firebase Admin (projectId ausente):',
       configErr?.message || configErr
