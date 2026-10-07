@@ -27,6 +27,8 @@ export default function Agenda() {
     form,
     setForm,
     notificationPermission,
+    isIosNonPwa,
+    pushStatusMessage,
     requestNotificationPermission,
     testPushNotification,
     resetForm,
@@ -40,13 +42,23 @@ export default function Agenda() {
         title="Agenda"
         description="Organize seus serviços, visitas técnicas e lembretes com facilidade."
         action={
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}
+          >
             <DialogTrigger
               render={
                 <Button
+                  type="button"
                   size="lg"
-                  className="shadow-lg shadow-blue-600/20"
-                  onClick={() => resetForm()}
+                  className="shadow-lg shadow-blue-600/20 cursor-pointer"
+                  onClick={() => {
+                    resetForm();
+                    setIsDialogOpen(true);
+                  }}
                 >
                   <Plus className="w-4 h-4 mr-2" /> Novo Evento
                 </Button>
@@ -71,6 +83,8 @@ export default function Agenda() {
             notificationPermission={notificationPermission}
             onRequestPermission={requestNotificationPermission}
             onTestPush={testPushNotification}
+            isIosNonPwa={isIosNonPwa}
+            pushStatusMessage={pushStatusMessage}
           />
           <AgendaStatsCard events={events} />
         </div>

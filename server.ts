@@ -15,6 +15,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Trust first proxy (Vercel / Cloud Run) for accurate IP rate limiting
+app.set('trust proxy', 1);
+
 // Global body parser
 app.use(express.json());
 
@@ -64,7 +67,7 @@ async function setupViteAndListen() {
         appType: 'spa',
       });
       app.use(vite.middlewares);
-    } else {
+    } else if (!config.isVercel) {
       const distPath = path.join(process.cwd(), 'dist');
       app.use(express.static(distPath));
       app.get('*', (req, res) => {

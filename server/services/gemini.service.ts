@@ -25,7 +25,7 @@ export class GeminiService {
       return await ai.models.generateContent({
         model: modelName,
         contents: `Analise a seguinte transcrição de áudio de um serviço elétrico/automação em português brasileiro e extraia as informações de forma estruturada para preencher um orçamento.
-
+        
 Transcrição de áudio:
 "${text}"`,
         config: {
@@ -131,15 +131,29 @@ Sua tarefa é retornar estritamente um objeto JSON com as seguintes propriedades
         createdAt: l.createdAt || null,
       })),
       pendingQuotesCount: context.quotes?.length || 0,
-      quotesSample: (context.quotes || []).slice(0, 10).map((q: any) => ({
-        id: String(q.id || ''),
-        clientName: String(q.clientName || 'Cliente').slice(0, 50),
-        phone: String(q.phone || ''),
-        description: String(q.description || '').slice(0, 100),
-        totalAmount: Number(q.totalAmount) || 0,
-        status: String(q.status || 'pending'),
-        createdAt: q.createdAt || null,
-      })),
+      quotesSample: (context.quotes || []).slice(0, 10).map((q: any) => {
+        let cleanDesc = String(q.description || '');
+        if (cleanDesc.trim().startsWith('{')) {
+          try {
+            const parsed = JSON.parse(cleanDesc);
+            const itemsText = Array.isArray(parsed.items)
+              ? parsed.items.map((i: any) => i?.name).filter(Boolean).join(', ')
+              : '';
+            cleanDesc = [itemsText, parsed.remarks].filter(Boolean).join(' - ');
+          } catch {
+            // keep fallback slice below
+          }
+        }
+        return {
+          id: String(q.id || ''),
+          clientName: String(q.clientName || 'Cliente').slice(0, 50),
+          phone: String(q.phone || ''),
+          description: cleanDesc.slice(0, 100),
+          totalAmount: Number(q.totalAmount) || 0,
+          status: String(q.status || 'pending'),
+          createdAt: q.createdAt || null,
+        };
+      }),
       activeOrdersCount: context.activeOrders?.length || 0,
       activeOrdersSample: (context.activeOrders || []).slice(0, 5).map((o: any) => ({
         id: String(o.id || ''),
@@ -239,10 +253,10 @@ Retorne ESTREITAMENTE um objeto JSON estruturado.`,
 
     let response;
     try {
-      response = await generateAnalysis('gemini-3.6-flash');
+      response = await generateAnalysis('gemini-flash-latest');
     } catch (err: any) {
       console.warn(
-        '[Commercial Copilot] Falha com gemini-3.6-flash. Tentando fallback...',
+        '[Commercial Copilot] Falha com gemini-flash-latest. Tentando fallback...',
         err.message
       );
       const fallbacks = ['gemini-3.1-flash-lite'];

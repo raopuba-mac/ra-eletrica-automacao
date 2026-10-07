@@ -24,16 +24,20 @@ export const VoiceBudgetModal: React.FC<VoiceBudgetModalProps> = ({
   processVoiceData
 }) => {
   return (
-    <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl space-y-3">
+    <div className="p-4 bg-[#0B0F19] text-white border border-slate-700 rounded-2xl space-y-3 shadow-inner">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Mic className={`w-4 h-4 ${isListening ? 'text-rose-500 animate-pulse' : 'text-primary'}`} />
-          <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Assistente de Voz IA</span>
+          <Mic className={`w-4 h-4 ${isListening ? 'text-rose-500 animate-pulse' : 'text-[#EAB308]'}`} />
+          <span className="text-xs font-black !text-white uppercase tracking-wider">
+            Assistente de Voz IA
+          </span>
         </div>
-        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">Incrível</span>
+        <span className="text-[10px] bg-[#EAB308]/20 !text-[#EAB308] border border-[#EAB308]/40 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">
+          IA Ativa
+        </span>
       </div>
-
-      <p className="text-[11px] text-slate-500 leading-normal">
+      
+      <p className="text-[11px] !text-slate-200 leading-normal font-medium">
         Fale os detalhes do serviço (ex: "Puxar fiação nova, instalar 2 chuveiros a 150 reais cada, com material incluso, desconto de 20 reais e observação trazer escada") e a IA preencherá tudo!
       </p>
 
@@ -42,7 +46,11 @@ export const VoiceBudgetModal: React.FC<VoiceBudgetModalProps> = ({
           type="button"
           onClick={toggleListening}
           variant={isListening ? "destructive" : "default"}
-          className="flex-1 h-11 text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all"
+          className={`flex-1 h-11 text-xs font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
+            isListening 
+              ? "bg-rose-600 hover:bg-rose-700 !text-white" 
+              : "bg-[#EAB308] hover:bg-[#ca8a04] !text-[#0B0F19]"
+          }`}
         >
           {isListening ? (
             <>
@@ -56,12 +64,12 @@ export const VoiceBudgetModal: React.FC<VoiceBudgetModalProps> = ({
             </>
           )}
         </Button>
-
+        
         <Button
           type="button"
           onClick={() => setIsManualInputOpen(!isManualInputOpen)}
           variant="outline"
-          className="h-11 px-3 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold"
+          className="h-11 px-3 rounded-xl border-slate-700 bg-[#1E293B] !text-white hover:bg-slate-800 hover:!text-[#EAB308] text-xs font-bold transition-colors cursor-pointer"
           title="Digitar ou colar notas"
         >
           <Keyboard className="w-4 h-4" />
@@ -69,19 +77,19 @@ export const VoiceBudgetModal: React.FC<VoiceBudgetModalProps> = ({
       </div>
 
       {(transcriptionText || isManualInputOpen || voiceLoading) && (
-        <div className="space-y-2 pt-1 border-t border-slate-100">
+        <div className="space-y-2 pt-2 border-t border-slate-800">
           {isManualInputOpen ? (
             <div className="space-y-2">
               <textarea
                 value={transcriptionText}
                 onChange={(e) => setTranscriptionText(e.target.value)}
                 placeholder="Digite ou cole as anotações do serviço aqui..."
-                className="w-full h-20 p-2.5 text-xs border border-slate-100 bg-slate-50 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                className="w-full h-20 p-2.5 text-xs border border-slate-300 bg-white !text-slate-900 placeholder:!text-slate-400 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] selection:bg-[#EAB308]/30 selection:text-slate-950 font-medium"
               />
             </div>
           ) : (
             transcriptionText && (
-              <div className="p-2.5 bg-white border border-slate-100 rounded-xl text-xs text-slate-700 font-medium italic min-h-[40px]">
+              <div className="p-2.5 bg-[#1E293B] border border-slate-700 rounded-xl text-xs !text-white font-medium italic min-h-[40px]">
                 {isListening && <span className="inline-block w-2 h-2 bg-rose-500 rounded-full animate-ping mr-1.5" />}
                 {transcriptionText}
               </div>
@@ -93,25 +101,25 @@ export const VoiceBudgetModal: React.FC<VoiceBudgetModalProps> = ({
               type="button"
               disabled={voiceLoading}
               onClick={processVoiceData}
-              className="w-full h-9 text-xs font-black uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-white rounded-xl flex items-center justify-center gap-2"
+              className="w-full h-10 text-xs font-black uppercase tracking-wider bg-slate-800 hover:bg-slate-700 !text-white rounded-xl flex items-center justify-center gap-2 border border-slate-700 transition-colors cursor-pointer"
             >
               {voiceLoading ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#EAB308]" />
                   Processando com IA...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#EAB308]" />
                   Preencher com IA
                 </>
               )}
             </Button>
           )}
-
+          
           {voiceLoading && !transcriptionText && (
-            <div className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-slate-500">
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <div className="flex items-center justify-center gap-2 py-3 text-xs font-semibold !text-slate-200">
+              <Loader2 className="w-4 h-4 animate-spin text-[#EAB308]" />
               Enviando transcrição para a IA...
             </div>
           )}

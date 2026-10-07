@@ -33,8 +33,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isVercel: Boolean(process.env.VERCEL),
 
-  geminiApiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '',
-  viteGeminiApiKey: process.env.VITE_GEMINI_API_KEY || '',
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
 
   appUrl: process.env.APP_URL || '',
 
