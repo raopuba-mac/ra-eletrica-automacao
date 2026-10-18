@@ -19,6 +19,7 @@ export function useAgenda() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<EventToDelete | null>(null);
   const [form, setForm] = useState<AgendaEventFormData>(INITIAL_FORM);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<string>('default');
   const [isIosNonPwa, setIsIosNonPwa] = useState<boolean>(false);
   const [pushStatusMessage, setPushStatusMessage] = useState<{
@@ -136,14 +137,37 @@ export function useAgenda() {
 
   const resetForm = () => {
     setForm(INITIAL_FORM);
+    setEditingEventId(null);
+  };
+
+  const startEditing = (evt: AgendaEvent) => {
+    const date = new Date(evt.date);
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+
+    setForm({
+      title: evt.title,
+      description: evt.description || '',
+      date: localDate,
+      type: evt.type,
+      recurrence: evt.recurrence || 'none',
+      notifyTime: evt.notifyTime || 'none',
+    });
+    setEditingEventId(evt.id);
+    setIsDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    setIsDialogOpen(false);
     try {
-      await agendaService.addEvent(user.uid, form);
+      if (editingEventId) {
+        await agendaService.updateEvent(editingEventId, form);
+      } else {
+        await agendaService.addEvent(user.uid, form);
+      }
+      setIsDialogOpen(false);
       resetForm();
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'agenda');
@@ -175,6 +199,8 @@ export function useAgenda() {
     requestNotificationPermission,
     testPushNotification,
     resetForm,
+    editingEventId,
+    startEditing,
     handleSubmit,
     confirmDelete,
   };

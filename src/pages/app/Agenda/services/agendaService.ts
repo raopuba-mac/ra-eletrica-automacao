@@ -5,6 +5,7 @@ import {
   onSnapshot,
   addDoc,
   deleteDoc,
+  updateDoc,
   doc,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -57,6 +58,29 @@ export const agendaService = {
       updatedAt: Date.now(),
     });
     return docRef.id;
+  },
+
+  /**
+   * Updates an existing agenda event.
+   */
+  async updateEvent(
+    eventId: string,
+    form: AgendaEventFormData
+  ): Promise<void> {
+    const timestamp = new Date(form.date).getTime();
+    if (!Number.isFinite(timestamp)) {
+      throw new Error('Data inválida');
+    }
+
+    await updateDoc(doc(db, 'agenda', eventId), {
+      title: form.title,
+      description: form.description,
+      date: timestamp,
+      type: form.type,
+      recurrence: form.recurrence,
+      notifyTime: form.notifyTime,
+      updatedAt: Date.now(),
+    });
   },
 
   /**

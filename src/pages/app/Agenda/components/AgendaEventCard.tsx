@@ -10,17 +10,28 @@ interface AgendaEventCardProps {
   evt: AgendaEvent;
   index: number;
   onDeleteRequest: (evt: { id: string; title: string }) => void;
+  onEdit: (evt: AgendaEvent) => void;
 }
 
 export const AgendaEventCard: React.FC<AgendaEventCardProps> = ({
   evt,
   index,
   onDeleteRequest,
+  onEdit,
 }) => {
   const isPast = evt.date < Date.now();
 
   return (
     <motion.div
+      role="button"
+      tabIndex={0}
+      onClick={() => onEdit(evt)}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onEdit(evt);
+        }
+      }}
       layout
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
@@ -112,12 +123,15 @@ export const AgendaEventCard: React.FC<AgendaEventCardProps> = ({
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-2 opacity-100 transition-opacity">
         <Button
           variant="ghost"
           size="icon"
           className="text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-full"
-          onClick={() => onDeleteRequest({ id: evt.id, title: evt.title })}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteRequest({ id: evt.id, title: evt.title });
+          }}
         >
           <Trash2 className="w-5 h-5" />
         </Button>

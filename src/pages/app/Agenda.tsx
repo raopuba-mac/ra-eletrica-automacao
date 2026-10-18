@@ -32,6 +32,8 @@ export default function Agenda() {
     requestNotificationPermission,
     testPushNotification,
     resetForm,
+    editingEventId,
+    startEditing,
     handleSubmit,
     confirmDelete,
   } = useAgenda();
@@ -67,7 +69,9 @@ export default function Agenda() {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 border-b pb-2">
-                  Agendar Compromisso
+                  {editingEventId
+                    ? 'Editar Compromisso'
+                    : 'Agendar Compromisso'}
                 </DialogTitle>
               </DialogHeader>
               <AgendaForm form={form} setForm={setForm} onSubmit={handleSubmit} />
@@ -98,6 +102,7 @@ export default function Agenda() {
                 evt={evt}
                 index={i}
                 onDeleteRequest={(target) => setEventToDelete(target)}
+                onEdit={startEditing}
               />
             ))}
           </AnimatePresence>
