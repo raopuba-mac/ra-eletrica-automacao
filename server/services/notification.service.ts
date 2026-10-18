@@ -16,7 +16,15 @@ const firebaseApp = getApps().length > 0 ? getApp() : initializeApp({
 });
 
 export const db = getFirestore(firebaseApp, config.firebase.firestoreDatabaseId || undefined);
-export const auth = getAuth(firebaseApp);
+// Inicialização adiada para não impedir o carregamento da API.
+let schedulerAuth: ReturnType<typeof getAuth> | null = null;
+
+function getSchedulerAuth() {
+  if (!schedulerAuth) {
+    schedulerAuth = getAuth(firebaseApp);
+  }
+  return schedulerAuth;
+}
 
 // Configure VAPID for webpush
 if (config.vapid.publicKey && config.vapid.privateKey) {
@@ -32,7 +40,7 @@ if (config.vapid.publicKey && config.vapid.privateKey) {
 let isAuthInitialized = false;
 
 export async function ensureAuthenticated(): Promise<boolean> {
-  if (isAuthInitialized && auth.currentUser) {
+  if (isAuthInitialized && schedulerAuth?.currentUser) {
     return true;
   }
 
@@ -46,7 +54,7 @@ export async function ensureAuthenticated(): Promise<boolean> {
 
   try {
     console.log('[Notification Service] Authenticating scheduler account...');
-    await signInWithEmailAndPassword(auth, email, password);
+    await signInWithEmailAndPassword(getSchedulerAuth(), email, password);
     console.log('[Notification Service] Scheduler authentication successful.');
     isAuthInitialized = true;
     return true;
@@ -63,7 +71,7 @@ export async function ensureAuthenticated(): Promise<boolean> {
     ) {
       console.log('[Notification Service] Scheduler user not found. Creating account...');
       try {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(getSchedulerAuth(), email, password);
         console.log('[Notification Service] Scheduler account created successfully.');
         isAuthInitialized = true;
         return true;
