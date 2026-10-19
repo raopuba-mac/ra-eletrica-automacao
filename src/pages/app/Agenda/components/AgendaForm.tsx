@@ -49,7 +49,13 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit,
           value={form.type}
         >
           <SelectTrigger className="w-full rounded-xl py-5 border-slate-250 focus:ring-blue-600">
-            <SelectValue placeholder="Selecione o tipo" />
+            <span className="flex flex-1 text-left">
+              {({
+                service: '🔧 Execução de Serviço',
+                visit: '📋 Visita Técnica',
+                reminder: '🔔 Lembrete',
+              } as Record<string, string>)[form.type] || 'Selecione o tipo'}
+            </span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="service">🔧 Execução de Serviço</SelectItem>
@@ -69,7 +75,14 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit,
             value={form.recurrence}
           >
             <SelectTrigger className="w-full rounded-xl py-5 border-slate-250">
-              <SelectValue placeholder="Se repete?" />
+              <span className="flex flex-1 text-left">
+                {({
+                  none: 'Único',
+                  daily: 'Diário',
+                  weekly: 'Semanal',
+                  monthly: 'Mensal',
+                } as Record<string, string>)[form.recurrence] || 'Selecione'}
+              </span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">🔁 Único</SelectItem>
@@ -88,7 +101,15 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit,
             value={form.notifyTime}
           >
             <SelectTrigger className="w-full rounded-xl py-5 border-slate-250">
-              <SelectValue placeholder="Lembrar quando?" />
+              <span className="flex flex-1 text-left">
+                {({
+                  none: 'Desativada',
+                  at_event: 'No horário',
+                  '15_min': '15 min antes',
+                  '1_hour': '1 hora antes',
+                  '24_hours': '1 dia antes',
+                } as Record<string, string>)[form.notifyTime] || 'Selecione'}
+              </span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">🔕 Desativada</SelectItem>
