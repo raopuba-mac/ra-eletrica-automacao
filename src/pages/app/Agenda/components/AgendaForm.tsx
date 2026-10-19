@@ -9,9 +9,10 @@ interface AgendaFormProps {
   form: AgendaEventFormData;
   setForm: React.Dispatch<React.SetStateAction<AgendaEventFormData>>;
   onSubmit: (e: React.FormEvent) => void;
+  isEditing?: boolean;
 }
 
-export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit }) => {
+export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit, isEditing = false }) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4 pt-2">
       <div className="space-y-1.5">
@@ -116,7 +117,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit 
         size="lg"
         className="w-full mt-2 font-black italic uppercase italic h-14 rounded-2xl shadow-xl shadow-blue-600/10 bg-primary hover:bg-primary/95 text-white transition-all transform hover:scale-[1.01]"
       >
-        Confirmar Agendamento
+        {isEditing ? 'Salvar Alterações' : 'Confirmar Agendamento'}
       </Button>
     </form>
   );

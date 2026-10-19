@@ -74,7 +74,7 @@ export default function Agenda() {
                     : 'Agendar Compromisso'}
                 </DialogTitle>
               </DialogHeader>
-              <AgendaForm form={form} setForm={setForm} onSubmit={handleSubmit} />
+              <AgendaForm form={form} setForm={setForm} onSubmit={handleSubmit} isEditing={Boolean(editingEventId)} />
             </DialogContent>
           </Dialog>
         }
