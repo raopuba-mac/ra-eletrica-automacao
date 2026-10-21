@@ -5,7 +5,10 @@ const router = Router();
 
 router.all('/cron/check-reminders', async (req: Request, res: Response) => {
   try {
-    const cronSecret = process.env.CRON_SECRET;
+    const cronSecret =
+      process.env.VERCEL_ENV === 'preview'
+        ? process.env.PREVIEW_CRON_SECRET
+        : process.env.CRON_SECRET;
 
     if (!cronSecret) {
       return res.status(403).json({

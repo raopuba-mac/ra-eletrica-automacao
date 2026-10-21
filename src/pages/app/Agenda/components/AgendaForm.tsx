@@ -105,6 +105,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit,
                 {({
                   none: 'Desativada',
                   at_event: 'No horário',
+                  '5_min': '5 min antes',
                   '15_min': '15 min antes',
                   '1_hour': '1 hora antes',
                   '24_hours': '1 dia antes',
@@ -114,6 +115,7 @@ export const AgendaForm: React.FC<AgendaFormProps> = ({ form, setForm, onSubmit,
             <SelectContent>
               <SelectItem value="none">🔕 Desativada</SelectItem>
               <SelectItem value="at_event">⏰ No horário</SelectItem>
+              <SelectItem value="5_min">⏱️ 5 min antes</SelectItem>
               <SelectItem value="15_min">⏱️ 15 min antes</SelectItem>
               <SelectItem value="1_hour">⏱️ 1 hora antes</SelectItem>
               <SelectItem value="24_hours">⏱️ 1 dia antes</SelectItem>

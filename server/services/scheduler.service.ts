@@ -87,12 +87,12 @@ export async function checkAgendaReminders(): Promise<number> {
   let count = 0;
   const now = Date.now();
   const agendaRef = collection(db, 'agenda');
-  const querySnapshot = await getDocs(
-    query(agendaRef, where('notified', '!=', true))
-  );
+  // Inclui também compromissos antigos sem o campo notified.
+  const querySnapshot = await getDocs(agendaRef);
 
   for (const d of querySnapshot.docs) {
     const event = { id: d.id, ...d.data() } as any;
+    if (event.notified === true) continue;
     if (!event.date || !event.userId || event.notifyTime === 'none') continue;
 
     const diffMs = event.date - now;
@@ -101,22 +101,27 @@ export async function checkAgendaReminders(): Promise<number> {
 
     // Tolerance windows
     if (event.notifyTime === 'at_event') {
-      if (diffMs <= 60000 && diffMs >= -120000) {
+      if (diffMs <= 60000 && diffMs >= -10 * 60000) {
         shouldNotify = true;
         timeLabel = 'está agendado para agora!';
       }
+    } else if (event.notifyTime === '5_min') {
+      if (diffMs <= 5 * 60000 && diffMs >= -5 * 60000) {
+        shouldNotify = true;
+        timeLabel = 'começa em até 5 minutos.';
+      }
     } else if (event.notifyTime === '15_min') {
-      if (diffMs <= 16 * 60000 && diffMs >= 14 * 60000) {
+      if (diffMs <= 16 * 60000 && diffMs >= 5 * 60000) {
         shouldNotify = true;
         timeLabel = 'começa em 15 minutos.';
       }
     } else if (event.notifyTime === '1_hour') {
-      if (diffMs <= 61 * 60000 && diffMs >= 59 * 60000) {
+      if (diffMs <= 61 * 60000 && diffMs >= 50 * 60000) {
         shouldNotify = true;
         timeLabel = 'começa em 1 hora.';
       }
     } else if (event.notifyTime === '24_hours') {
-      if (diffMs <= 24.1 * 60 * 60000 && diffMs >= 23.9 * 60 * 60000) {
+      if (diffMs <= 24.1 * 60 * 60000 && diffMs >= 1430 * 60000) {
         shouldNotify = true;
         timeLabel = 'está agendado para amanhã.';
       }
@@ -137,8 +142,14 @@ export async function checkAgendaReminders(): Promise<number> {
 
       if (sent > 0) {
         count++;
+        await updateDoc(doc(db, 'agenda', event.id), {
+          notified: true,
+        });
+      } else {
+        console.warn(
+          `[Push Scheduler] Nenhum dispositivo recebeu o envio para: ${event.title}`
+        );
       }
-      await updateDoc(doc(db, 'agenda', event.id), { notified: true });
     }
   }
 

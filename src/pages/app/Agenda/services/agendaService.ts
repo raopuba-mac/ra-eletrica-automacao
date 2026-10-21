@@ -54,6 +54,7 @@ export const agendaService = {
       type: form.type,
       recurrence: form.recurrence,
       notifyTime: form.notifyTime,
+      notified: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -79,6 +80,7 @@ export const agendaService = {
       type: form.type,
       recurrence: form.recurrence,
       notifyTime: form.notifyTime,
+      notified: false,
       updatedAt: Date.now(),
     });
   },
