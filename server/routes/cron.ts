@@ -1,7 +1,22 @@
 import { Router, Request, Response } from 'express';
 import { runAllAutomations } from '../services/scheduler.service.js';
+import { checkSchedulerAuthReadOnly } from '../services/notification.service.js';
 
 const router = Router();
+
+router.get('/cron/auth-check', async (req: Request, res: Response) => {
+  if (process.env.VERCEL_ENV !== 'preview') {
+    return res.sendStatus(404);
+  }
+
+  const secret = process.env.PREVIEW_CRON_SECRET;
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
+    return res.sendStatus(401);
+  }
+
+  const result = await checkSchedulerAuthReadOnly();
+  return res.status(result.success ? 200 : 503).json(result);
+});
 
 router.all('/cron/check-reminders', async (req: Request, res: Response) => {
   try {

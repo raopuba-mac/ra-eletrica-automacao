@@ -205,3 +205,26 @@ export class NotificationService {
 }
 
 export const notificationService = new NotificationService();
+
+// Diagnóstico sem criação de usuários ou envio de notificações.
+export async function checkSchedulerAuthReadOnly() {
+  if (!config.scheduler.email || !config.scheduler.password) {
+    return { success: false, code: 'CREDENTIALS_MISSING' };
+  }
+
+  try {
+    await signInWithEmailAndPassword(
+      getSchedulerAuth(),
+      config.scheduler.email,
+      config.scheduler.password
+    );
+    return { success: true, code: 'AUTH_OK' };
+  } catch (error: any) {
+    const raw = error?.code;
+    const code =
+      typeof raw === 'string' && /^auth\/[a-z-]+$/.test(raw)
+        ? raw
+        : 'AUTH_ERROR';
+    return { success: false, code };
+  }
+}
