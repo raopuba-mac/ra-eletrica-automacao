@@ -1,0 +1,51 @@
+name: Testar API do Preview
+
+on:
+  push:
+    branches:
+      - preview/ra-erp-5.0
+    paths:
+      - .github/workflows/preview-api-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verificar-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verificar acesso seguro ao Preview
+        env:
+          VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          python3 - <<'CHECK'
+          import os
+          import json
+          import urllib.request
+          import sys
+
+          url = "https://ra-eletrica-automacao-git-preview-712e81-raopuba-5606s-projects.vercel.app/api/notifications/vapid-public-key"
+
+          secret = os.environ.get("VERCEL_BYPASS")
+          if not secret:
+              sys.exit("ERRO: Credencial Vercel ausente no GitHub.")
+
+          req = urllib.request.Request(
+              url,
+              headers={"x-vercel-protection-bypass": secret}
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  content_type = r.headers.get("Content-Type", "")
+                  if "application/json" not in content_type:
+                      sys.exit("ERRO: A API não retornou JSON.")
+                  data = json.load(r)
+                  if not data.get("publicKey"):
+                      sys.exit("ERRO: Chave pública VAPID indisponível.")
+                  print("SUCESSO: API do Preview acessível e VAPID disponível.")
+          except Exception as e:
+              print("FALHA:", type(e).__name__)
+              sys.exit(1)
+          CHECK
