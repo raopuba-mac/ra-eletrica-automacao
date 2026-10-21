@@ -49,3 +49,52 @@ jobs:
               print("FALHA:", type(e).__name__)
               sys.exit(1)
           CHECK
+
+      - name: Diagnosticar autenticação Firebase
+        env:
+          VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          PREVIEW_CRON_SECRET: ${{ secrets.PREVIEW_CRON_SECRET }}
+        run: |
+          python3 - <<'CHECK'
+          import os
+          import json
+          import sys
+          import urllib.request
+          import urllib.error
+
+          url = "https://ra-eletrica-automacao-git-preview-712e81-raopuba-5606s-projects.vercel.app/api/cron/auth-check"
+
+          bypass = os.environ.get("VERCEL_BYPASS")
+          cron = os.environ.get("PREVIEW_CRON_SECRET")
+
+          if not bypass or not cron:
+              sys.exit("ERRO: Credencial ausente no GitHub Secrets.")
+
+          req = urllib.request.Request(url, headers={
+              "x-vercel-protection-bypass": bypass,
+              "Authorization": "Bearer " + cron
+          })
+
+          try:
+              with urllib.request.urlopen(req, timeout=25) as r:
+                  status = r.status
+                  data = json.load(r)
+          except urllib.error.HTTPError as e:
+              status = e.code
+              try:
+                  data = json.loads(e.read().decode())
+              except Exception:
+                  data = {}
+          except Exception as e:
+              print("Falha de conexão:", type(e).__name__)
+              sys.exit(1)
+
+          code = data.get("code", "SEM_DIAGNOSTICO")
+          print("HTTP:", status)
+          print("Resultado Firebase:", code)
+
+          if status != 200 or code != "AUTH_OK":
+              sys.exit(1)
+
+          print("SUCESSO: Autenticação Firebase funcionando.")
+          CHECK
