@@ -1,180 +1,68 @@
 import webpush from 'web-push';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
+import { createHash } from 'node:crypto';
 import { config } from '../config/index.js';
+import { getServerApp, getServerDb } from './adminFirebase.js';
 
-// Initialize Firebase App for server backend services if not already initialized
-const firebaseApp = getApps().length > 0 ? getApp() : initializeApp({
-  projectId: config.firebase.projectId,
-  appId: config.firebase.appId,
-  apiKey: config.firebase.apiKey,
-  authDomain: config.firebase.authDomain,
-  databaseURL: config.firebase.firestoreDatabaseId ? undefined : undefined,
-  storageBucket: config.firebase.storageBucket,
-  messagingSenderId: config.firebase.messagingSenderId,
-});
-
-export const db = getFirestore(firebaseApp, config.firebase.firestoreDatabaseId || undefined);
-// Inicialização adiada para não impedir o carregamento da API.
-let schedulerAuth: ReturnType<typeof getAuth> | null = null;
-
-function getSchedulerAuth() {
-  if (!schedulerAuth) {
-    schedulerAuth = getAuth(firebaseApp);
-  }
-  return schedulerAuth;
-}
-
-// Configure VAPID for webpush
-if (config.vapid.publicKey && config.vapid.privateKey) {
-  webpush.setVapidDetails(
-    config.vapid.mailto,
-    config.vapid.publicKey,
-    config.vapid.privateKey
-  );
+const vapidReady = Boolean(config.vapid.publicKey && config.vapid.privateKey);
+if (vapidReady) {
+  webpush.setVapidDetails(config.vapid.mailto, config.vapid.publicKey, config.vapid.privateKey);
 } else {
-  console.error('[Notification Service] VAPID keys missing in configuration.');
+  console.error('[Push] VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY ausentes.');
 }
 
-let isAuthInitialized = false;
-
+// Não usa Firebase Web Auth no servidor; usa conta de serviço via Firebase Admin.
 export async function ensureAuthenticated(): Promise<boolean> {
-  if (isAuthInitialized && schedulerAuth?.currentUser) {
+  try {
+    getServerApp();
+    getServerDb();
     return true;
-  }
-
-  const email = config.scheduler.email;
-  const password = config.scheduler.password;
-
-  if (!email || !password) {
-    console.error('[Notification Service] SCHEDULER_EMAIL and/or SCHEDULER_PASSWORD environment variables missing.');
+  } catch (err: any) {
+    console.error('[Push] Erro Firebase Admin:', err?.code || err?.message || 'CONFIG_ERROR');
     return false;
   }
-
-  try {
-    console.log('[Notification Service] Authenticating scheduler account...');
-    await signInWithEmailAndPassword(getSchedulerAuth(), email, password);
-    console.log('[Notification Service] Scheduler authentication successful.');
-    isAuthInitialized = true;
-    return true;
-  } catch (error: any) {
-    if (error.code === 'auth/operation-not-allowed') {
-      console.error(`[Notification Service] Email/Password auth provider is disabled in Firebase console.`);
-      return false;
-    }
-
-    if (
-      error.code === 'auth/user-not-found' ||
-      error.code === 'auth/invalid-credential' ||
-      error.code === 'auth/invalid-email'
-    ) {
-      console.log('[Notification Service] Scheduler user not found. Creating account...');
-      try {
-        await createUserWithEmailAndPassword(getSchedulerAuth(), email, password);
-        console.log('[Notification Service] Scheduler account created successfully.');
-        isAuthInitialized = true;
-        return true;
-      } catch (createError: any) {
-        console.error('[Notification Service] Error creating scheduler account:', createError);
-        return false;
-      }
-    } else {
-      console.error('[Notification Service] Authentication error:', error);
-      return false;
-    }
-  }
 }
 
+type PushPayload = { title: string; body: string; icon?: string; badge?: string; data?: { url: string } };
+
 export class NotificationService {
-  getVapidPublicKey(): string {
+  getVapidPublicKey() {
     return config.vapid.publicKey;
   }
 
   async registerSubscription(userId: string, subscription: any): Promise<void> {
-    const authenticated = await ensureAuthenticated();
-    if (!authenticated) {
-      throw new Error('AUTH_METHOD_DISABLED');
-    }
-
-    if (!subscription || !subscription.endpoint) {
+    if (!userId || typeof userId !== 'string' || userId.length > 128 ||
+      !subscription || typeof subscription.endpoint !== 'string' ||
+      !subscription.endpoint.startsWith('https://') || subscription.endpoint.length > 2048 ||
+      !subscription.keys || typeof subscription.keys.p256dh !== 'string' ||
+      typeof subscription.keys.auth !== 'string') {
       throw new Error('INVALID_SUBSCRIPTION');
     }
-
-    const subscriptionHash = Buffer.from(subscription.endpoint)
-      .toString('base64')
-      .replace(/[^a-zA-Z0-9]/g, '');
-    const subDocRef = doc(db, 'push_subscriptions', subscriptionHash);
-
-    await setDoc(subDocRef, {
+    const endpointHash = createHash('sha256').update(subscription.endpoint).digest('hex');
+    await getServerDb().collection('push_subscriptions').doc(endpointHash).set({
       userId,
-      subscription,
+      subscription: {
+        endpoint: subscription.endpoint,
+        expirationTime: subscription.expirationTime ?? null,
+        keys: { p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
+      },
       expired: false,
       createdAt: Date.now(),
     });
-
-    console.log(`[Notification Service] Registered new subscription for user: ${userId}`);
   }
 
   async sendTestPush(userId: string, title?: string, body?: string): Promise<number> {
-    const authenticated = await ensureAuthenticated();
-    if (!authenticated) {
-      throw new Error('AUTH_METHOD_DISABLED');
-    }
-
-    const querySnapshot = await getDocs(
-      query(collection(db, 'push_subscriptions'), where('userId', '==', userId))
-    );
-
-    if (querySnapshot.empty) {
-      throw new Error('NO_SUBSCRIPTIONS_FOUND');
-    }
-
-    const payload = JSON.stringify({
+    return this.sendPushToUser(userId, {
       title: title || 'Teste RA Elétrica & Automação',
-      body: body || 'Este é um teste de notificação push em tempo real!',
-      icon: '/logo.jpg',
-      badge: '/favicon.png',
-      data: {
-        url: '/app/agenda',
-      },
+      body: body || 'Teste de Web Push enviado pelo servidor.',
+      data: { url: '/app/agenda' },
     });
-
-    let sentCount = 0;
-    for (const d of querySnapshot.docs) {
-      const subData = d.data() as any;
-      if (subData.subscription && !subData.expired) {
-        try {
-          await webpush.sendNotification(subData.subscription, payload);
-          sentCount++;
-        } catch (err: any) {
-          console.error(`[Notification Service] Error sending to sub ${d.id}:`, err);
-          if (err.statusCode === 410 || err.statusCode === 404) {
-            await setDoc(doc(db, 'push_subscriptions', d.id), { ...subData, expired: true });
-          }
-        }
-      }
-    }
-
-    return sentCount;
   }
 
-  async sendPushToUser(
-    userId: string,
-    payloadObj: { title: string; body: string; icon?: string; badge?: string; data?: { url: string } }
-  ): Promise<number> {
-    const authenticated = await ensureAuthenticated();
-    if (!authenticated) {
-      return 0;
-    }
-
-    const querySnapshot = await getDocs(
-      query(collection(db, 'push_subscriptions'), where('userId', '==', userId))
-    );
-
-    if (querySnapshot.empty) {
-      return 0;
-    }
+  async sendPushToUser(userId: string, payloadObj: PushPayload): Promise<number> {
+    if (!vapidReady) throw new Error('VAPID_NOT_CONFIGURED');
+    const snapshot = await getServerDb().collection('push_subscriptions')
+      .where('userId', '==', userId).get();
+    if (snapshot.empty) return 0;
 
     const payload = JSON.stringify({
       title: payloadObj.title,
@@ -183,48 +71,25 @@ export class NotificationService {
       badge: payloadObj.badge || '/favicon.png',
       data: payloadObj.data || { url: '/app/agenda' },
     });
-
-    let sentCount = 0;
-    for (const d of querySnapshot.docs) {
-      const subData = d.data() as any;
-      if (subData.subscription && !subData.expired) {
-        try {
-          await webpush.sendNotification(subData.subscription, payload);
-          sentCount++;
-        } catch (err: any) {
-          console.error(`[Notification Service] Error sending to sub ${d.id}:`, err);
-          if (err.statusCode === 410 || err.statusCode === 404) {
-            await setDoc(doc(db, 'push_subscriptions', d.id), { ...subData, expired: true });
-          }
+    let sent = 0;
+    const seenEndpoints = new Set<string>();
+    for (const entry of snapshot.docs) {
+      const item = entry.data();
+      const sub = item.subscription;
+      if (item.expired || !sub?.endpoint || seenEndpoints.has(sub.endpoint)) continue;
+      seenEndpoints.add(sub.endpoint);
+      try {
+        await webpush.sendNotification(sub, payload);
+        sent++;
+      } catch (err: any) {
+        console.warn('[Push] Falha no endpoint:', err?.statusCode || 'NETWORK_ERROR');
+        if (err?.statusCode === 410 || err?.statusCode === 404) {
+          await entry.ref.update({ expired: true });
         }
       }
     }
-
-    return sentCount;
+    return sent;
   }
 }
 
 export const notificationService = new NotificationService();
-
-// Diagnóstico sem criação de usuários ou envio de notificações.
-export async function checkSchedulerAuthReadOnly() {
-  if (!config.scheduler.email || !config.scheduler.password) {
-    return { success: false, code: 'CREDENTIALS_MISSING' };
-  }
-
-  try {
-    await signInWithEmailAndPassword(
-      getSchedulerAuth(),
-      config.scheduler.email,
-      config.scheduler.password
-    );
-    return { success: true, code: 'AUTH_OK' };
-  } catch (error: any) {
-    const raw = error?.code;
-    const code =
-      typeof raw === 'string' && /^auth\/[a-z-]+$/.test(raw)
-        ? raw
-        : 'AUTH_ERROR';
-    return { success: false, code };
-  }
-}

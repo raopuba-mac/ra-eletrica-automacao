@@ -62,7 +62,7 @@ jobs:
           import urllib.request
           import urllib.error
 
-          url = "https://ra-eletrica-automacao-git-preview-712e81-raopuba-5606s-projects.vercel.app/api/cron/auth-check"
+          url = "https://ra-eletrica-automacao-git-preview-712e81-raopuba-5606s-projects.vercel.app/api/cron/health"
 
           bypass = os.environ.get("VERCEL_BYPASS")
           cron = os.environ.get("PREVIEW_CRON_SECRET")
@@ -89,12 +89,12 @@ jobs:
               print("Falha de conexão:", type(e).__name__)
               sys.exit(1)
 
-          code = data.get("code", "SEM_DIAGNOSTICO")
+          code = data.get("backend", "SEM_DIAGNOSTICO")
           print("HTTP:", status)
           print("Resultado Firebase:", code)
 
-          if status != 200 or code != "AUTH_OK":
+          if status != 200 or code != "firebase-admin" or data.get("firestore") != "connected":
               sys.exit(1)
 
-          print("SUCESSO: Autenticação Firebase funcionando.")
+          print("SUCESSO: Firebase Admin e Firestore acessíveis no Preview.")
           CHECK

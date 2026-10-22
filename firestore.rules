@@ -204,7 +204,7 @@ service cloud.firestore {
           && data.updatedAt is number;
         let pDesc = !('description' in data) || (data.description is string && data.description.size() <= 2000);
         let pRecurrence = !('recurrence' in data) || (data.recurrence is string && data.recurrence.size() <= 50 && data.recurrence in ['none', 'daily', 'weekly', 'monthly']);
-        let pNotify = !('notifyTime' in data) || (data.notifyTime is string && data.notifyTime.size() <= 50 && data.notifyTime in ['none', 'at_event', '15_min', '1_hour', '24_hours']);
+        let pNotify = !('notifyTime' in data) || (data.notifyTime is string && data.notifyTime.size() <= 50 && data.notifyTime in ['none', 'at_event', '5_min', '15_min', '1_hour', '24_hours']);
         return hasCore && hasMaxKeys && isTypes && pDesc && pRecurrence && pNotify;
       }
 

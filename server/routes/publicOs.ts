@@ -1,182 +1,85 @@
 import { Router } from 'express';
-import { doc, getDoc, runTransaction } from 'firebase/firestore';
-import { db, ensureAuthenticated } from '../services/notification.service.js';
+import { getServerDb } from '../services/adminFirebase.js';
 
 const router = Router();
 
-/**
- * GET /api/public/os/:orderId?token=...
- * Public sanitized endpoint for viewing a Service Order.
- */
+// Visualização pública exige token; jamais retorna documentos sensíveis completos.
 router.get('/public/os/:orderId', async (req, res) => {
   const { orderId } = req.params;
-  const token = req.query.token as string | undefined;
-
-  if (!orderId) {
-    return res.status(400).json({ error: 'ID da Ordem de Serviço não informado.' });
-  }
-
+  const token = typeof req.query.token === 'string' ? req.query.token : '';
+  if (!orderId || !token) return res.status(400).json({ error: 'ID e token obrigatórios.' });
   try {
-    const isAuth = await ensureAuthenticated();
-    if (!isAuth) {
-      return res.status(500).json({ error: 'Erro de autenticação no servidor.' });
+    const db = getServerDb();
+    const snap = await db.collection('serviceOrders').doc(orderId).get();
+    if (!snap.exists) return res.status(404).json({ error: 'OS não encontrada.' });
+    const x = snap.data()!;
+    if (x.status === 'cancelled' || !x.shareToken || token !== x.shareToken) {
+      return res.status(403).json({ error: 'Acesso negado.' });
     }
-
-    const orderRef = doc(db, 'serviceOrders', orderId);
-    const orderSnap = await getDoc(orderRef);
-
-    if (!orderSnap.exists()) {
-      return res.status(404).json({ error: 'Ordem de Serviço não encontrada.' });
-    }
-
-    const orderData = orderSnap.data();
-
-    if (orderData.status === 'cancelled') {
-      return res.status(404).json({ error: 'Ordem de Serviço não encontrada ou cancelada.' });
-    }
-
-    // Token validation - Strict match required
-    if (!orderData.shareToken || !token || token !== orderData.shareToken) {
-      return res.status(403).json({ error: 'Acesso negado. Token de compartilhamento inválido ou ausente.' });
-    }
-
-    // Fetch client name
     let clientName = 'Cliente';
-    if (orderData.clientId) {
-      try {
-        const clientSnap = await getDoc(doc(db, 'clients', orderData.clientId));
-        if (clientSnap.exists()) {
-          clientName = clientSnap.data().name || 'Cliente';
-        }
-      } catch (e) {
-        console.warn('[Public OS API] Error fetching client:', e);
-      }
+    if (x.clientId) {
+      const client = await db.collection('clients').doc(x.clientId).get();
+      if (client.exists && client.data()?.userId === x.userId) clientName = client.data()?.name || clientName;
     }
-
-    // Fetch company info from public_config or user doc
     let companyName = 'RA | Elétrica & Automação';
     let companyPhone = '';
-
-    try {
-      const configSnap = await getDoc(doc(db, 'site_settings', 'public_config'));
-      if (configSnap.exists()) {
-        const cfg = configSnap.data();
-        if (cfg.companyName) companyName = cfg.companyName;
-        if (cfg.whatsappInfo) companyPhone = cfg.whatsappInfo;
-      } else if (orderData.userId) {
-        const userSnap = await getDoc(doc(db, 'users', orderData.userId));
-        if (userSnap.exists()) {
-          const u = userSnap.data();
-          if (u.companyName) companyName = u.companyName;
-          if (u.phone || u.whatsappInfo) companyPhone = u.phone || u.whatsappInfo || '';
-        }
+    const cfg = await db.collection('site_settings').doc('public_config').get();
+    if (cfg.exists && (cfg.data()?.ownerId === x.userId || cfg.data()?.userId === x.userId)) {
+      companyName = cfg.data()?.companyName || companyName;
+      companyPhone = cfg.data()?.whatsappInfo || cfg.data()?.phone || '';
+    } else if (x.userId) {
+      const user = await db.collection('users').doc(x.userId).get();
+      if (user.exists) {
+        companyName = user.data()?.companyName || companyName;
+        companyPhone = user.data()?.whatsappInfo || user.data()?.phone || '';
       }
-    } catch (e) {
-      console.warn('[Public OS API] Error fetching company profile:', e);
     }
-
-    // Return strictly sanitized public fields (excluding clientSignatureDoc, shareToken, userId, etc.)
     return res.json({
-      id: orderSnap.id,
-      status: orderData.status,
-      description: orderData.description || '',
-      scheduledDate: orderData.scheduledDate || '',
-      scheduledTime: orderData.scheduledTime || '',
-      finalPrice: orderData.finalPrice || '',
-      photos: orderData.photos || [],
-      photosAfter: orderData.photosAfter || [],
-      clientSignatureName: orderData.clientSignatureName || null,
-      signedAt: orderData.signedAt || null,
-      clientName,
-      companyName,
-      companyPhone,
+      id: snap.id, status: x.status, description: x.description || '',
+      scheduledDate: x.scheduledDate || '', scheduledTime: x.scheduledTime || '',
+      finalPrice: x.finalPrice || '', photos: x.photos || [], photosAfter: x.photosAfter || [],
+      clientSignatureName: x.clientSignatureName || null,
+      signedAt: x.signedAt || null, clientName, companyName, companyPhone,
     });
-  } catch (err: any) {
-    console.error('[Public OS API Error]', err);
-    return res.status(500).json({ error: 'Erro ao carregar Ordem de Serviço.' });
+  } catch (error) {
+    console.error('[Public OS Read]', error);
+    return res.status(503).json({ error: 'OS indisponível.' });
   }
 });
 
-/**
- * POST /api/public/os/:orderId/sign
- * Public endpoint for signing a Service Order atomically using runTransaction.
- */
 router.post('/public/os/:orderId/sign', async (req, res) => {
   const { orderId } = req.params;
   const { token, clientSignatureName, clientSignatureDoc } = req.body || {};
-
-  if (!orderId || !token) {
-    return res.status(400).json({ error: 'ID da Ordem de Serviço e Token são obrigatórios.' });
+  if (!orderId || typeof token !== 'string' || !token ||
+    typeof clientSignatureName !== 'string' || clientSignatureName.trim().length < 2) {
+    return res.status(400).json({ error: 'ID, token e nome são obrigatórios.' });
   }
-
-  if (!clientSignatureName || typeof clientSignatureName !== 'string' || clientSignatureName.trim().length < 2) {
-    return res.status(400).json({ error: 'Nome do assinante é obrigatório e deve ter no mínimo 2 caracteres.' });
-  }
-
+  const name = clientSignatureName.trim().slice(0, 150);
+  const docNumber = typeof clientSignatureDoc === 'string' ? clientSignatureDoc.trim().slice(0, 50) : '';
   try {
-    const isAuth = await ensureAuthenticated();
-    if (!isAuth) {
-      return res.status(500).json({ error: 'Erro de autenticação no servidor.' });
-    }
-
-    const timestamp = Date.now();
-    const cleanName = clientSignatureName.trim().slice(0, 150);
-    const cleanDoc = String(clientSignatureDoc || '').trim().slice(0, 50);
-
-    await runTransaction(db, async (transaction) => {
-      const orderRef = doc(db, 'serviceOrders', orderId);
-      const orderSnap = await transaction.get(orderRef);
-
-      if (!orderSnap.exists()) {
-        throw new Error('OS_NOT_FOUND');
-      }
-
-      const orderData = orderSnap.data();
-
-      if (orderData.status === 'cancelled') {
-        throw new Error('OS_CANCELLED');
-      }
-
-      // Verify token
-      if (!orderData.shareToken || orderData.shareToken !== token) {
-        throw new Error('INVALID_TOKEN');
-      }
-
-      // Single-use signature protection
-      if (orderData.signedAt && Number(orderData.signedAt) > 0) {
-        throw new Error('ALREADY_SIGNED');
-      }
-
-      transaction.update(orderRef, {
-        clientSignatureName: cleanName,
-        clientSignatureDoc: cleanDoc,
-        signedAt: timestamp,
-        updatedAt: timestamp,
+    const db = getServerDb();
+    const ref = db.collection('serviceOrders').doc(orderId);
+    const signedAt = Date.now();
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new Error('OS_NOT_FOUND');
+      const x = snap.data()!;
+      if (x.status === 'cancelled') throw new Error('OS_CANCELLED');
+      if (!x.shareToken || x.shareToken !== token) throw new Error('INVALID_TOKEN');
+      if (x.signedAt && Number(x.signedAt) > 0) throw new Error('ALREADY_SIGNED');
+      tx.update(ref, {
+        clientSignatureName: name, clientSignatureDoc: docNumber,
+        signedAt, updatedAt: signedAt,
       });
     });
-
-    return res.json({
-      success: true,
-      message: 'Assinatura digital registrada com sucesso.',
-      signedAt: timestamp,
-      clientSignatureName: cleanName,
-    });
+    return res.json({ success: true, signedAt, clientSignatureName: name });
   } catch (err: any) {
-    if (err?.message === 'OS_NOT_FOUND') {
-      return res.status(404).json({ error: 'Ordem de Serviço não encontrada.' });
-    }
-    if (err?.message === 'OS_CANCELLED') {
-      return res.status(404).json({ error: 'Ordem de Serviço não encontrada ou cancelada.' });
-    }
-    if (err?.message === 'INVALID_TOKEN') {
-      return res.status(403).json({ error: 'Token de compartilhamento inválido.' });
-    }
-    if (err?.message === 'ALREADY_SIGNED') {
-      return res.status(400).json({ error: 'Esta Ordem de Serviço já foi assinada.' });
-    }
-
-    console.error('[Public OS Sign Error]', err);
-    return res.status(500).json({ error: 'Erro ao registrar assinatura digital.' });
+    const code = err?.message;
+    if (code === 'INVALID_TOKEN') return res.status(403).json({ error: code });
+    if (code === 'ALREADY_SIGNED') return res.status(409).json({ error: code });
+    if (code === 'OS_NOT_FOUND' || code === 'OS_CANCELLED') return res.status(404).json({ error: code });
+    console.error('[Public OS Sign]', err);
+    return res.status(503).json({ error: 'ASSINATURA_INDISPONIVEL' });
   }
 });
 

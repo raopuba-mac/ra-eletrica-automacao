@@ -1,63 +1,42 @@
 import { Router, Request, Response } from 'express';
+import { timingSafeEqual } from 'node:crypto';
+import { getServerDb } from '../services/adminFirebase.js';
 import { runAllAutomations } from '../services/scheduler.service.js';
-import { checkSchedulerAuthReadOnly } from '../services/notification.service.js';
 
 const router = Router();
 
-router.get('/cron/auth-check', async (req: Request, res: Response) => {
-  if (process.env.VERCEL_ENV !== 'preview') {
-    return res.sendStatus(404);
-  }
+function authorized(req: Request): boolean {
+  const secret = process.env.VERCEL_ENV === 'preview'
+    ? process.env.PREVIEW_CRON_SECRET
+    : process.env.CRON_SECRET;
+  const provided = req.headers.authorization;
+  if (!secret || typeof provided !== 'string' || !provided.startsWith('Bearer ')) return false;
+  const a = Buffer.from(provided.slice(7));
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
-  const secret = process.env.PREVIEW_CRON_SECRET;
-  if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
-    return res.sendStatus(401);
+// Rota diagnóstica sem alteração de dados, autorizada e exclusiva do Preview.
+router.get('/cron/health', async (req: Request, res: Response) => {
+  if (process.env.VERCEL_ENV !== 'preview') return res.sendStatus(404);
+  if (!authorized(req)) return res.sendStatus(401);
+  try {
+    await getServerDb().collection('push_subscriptions').limit(1).get();
+    return res.json({ success: true, backend: 'firebase-admin', firestore: 'connected' });
+  } catch (error: any) {
+    console.error('[Cron Health]', error?.code || error?.message);
+    return res.status(503).json({ success: false, error: 'FIRESTORE_UNAVAILABLE' });
   }
-
-  const result = await checkSchedulerAuthReadOnly();
-  return res.status(result.success ? 200 : 503).json(result);
 });
 
 router.all('/cron/check-reminders', async (req: Request, res: Response) => {
+  if (!authorized(req)) return res.sendStatus(401);
   try {
-    const cronSecret =
-      process.env.VERCEL_ENV === 'preview'
-        ? process.env.PREVIEW_CRON_SECRET
-        : process.env.CRON_SECRET;
-
-    if (!cronSecret) {
-      return res.status(403).json({
-        error: 'UNAUTHORIZED',
-        message: 'Segredo do Cron (CRON_SECRET) não configurado no ambiente do servidor.',
-      });
-    }
-
-    const authHeader = req.headers.authorization;
-
-    let providedToken = '';
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      providedToken = authHeader.substring(7);
-    }
-
-    if (!providedToken || providedToken !== cronSecret) {
-      return res.status(401).json({
-        error: 'UNAUTHORIZED',
-        message: 'Acesso não autorizado ao endpoint do Cron. Token Bearer inválido ou ausente.',
-      });
-    }
-
     const summary = await runAllAutomations();
-    return res.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      summary,
-    });
+    return res.json({ success: true, timestamp: new Date().toISOString(), summary });
   } catch (error: any) {
-    console.error('[Cron Endpoint Error]', error);
-    return res.status(500).json({
-      error: 'CRON_EXECUTION_ERROR',
-      message: 'Erro durante a execução do cron de lembretes.',
-    });
+    console.error('[Cron Execution]', error?.code || error?.message);
+    return res.status(503).json({ success: false, error: 'CRON_UNAVAILABLE' });
   }
 });
 

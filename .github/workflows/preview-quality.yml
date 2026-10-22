@@ -1,0 +1,28 @@
+name: Qualidade RA ERP Preview
+
+on:
+  push:
+    branches:
+      - preview/ra-erp-5.0
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Tipagem
+        run: npx tsc --noEmit
+      - name: Testes de lembretes
+        run: npx tsx --test tests/reminderSchedule.test.ts
+      - name: Build
+        run: npm run build

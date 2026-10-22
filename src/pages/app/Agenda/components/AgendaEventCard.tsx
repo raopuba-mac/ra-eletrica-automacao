@@ -113,6 +113,8 @@ export const AgendaEventCard: React.FC<AgendaEventCardProps> = ({
                 Lembrete:{' '}
                 {evt.notifyTime === 'at_event'
                   ? 'No Horário'
+                  : evt.notifyTime === '5_min'
+                  ? '5 Min Antes'
                   : evt.notifyTime === '15_min'
                   ? '15 Min Antes'
                   : evt.notifyTime === '1_hour'

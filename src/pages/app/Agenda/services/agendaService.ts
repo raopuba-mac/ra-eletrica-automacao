@@ -9,7 +9,7 @@ import {
   doc,
   Unsubscribe,
 } from 'firebase/firestore';
-import { db } from '../../../../lib/firebase';
+import { auth, db } from '../../../../lib/firebase';
 import { OperationType, handleFirestoreError } from '../../../../lib/error';
 import { AgendaEvent, AgendaEventFormData } from '../types/agenda.types';
 import { urlBase64ToUint8Array } from '../utils/agendaUtils';
@@ -54,7 +54,6 @@ export const agendaService = {
       type: form.type,
       recurrence: form.recurrence,
       notifyTime: form.notifyTime,
-      notified: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -80,7 +79,6 @@ export const agendaService = {
       type: form.type,
       recurrence: form.recurrence,
       notifyTime: form.notifyTime,
-      notified: false,
       updatedAt: Date.now(),
     });
   },
@@ -198,11 +196,14 @@ export const agendaService = {
         });
       }
 
-      // 4. Send subscription to server
+      // 4. Send subscription to server with Firebase ID token
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) return { subscribed: false, message: 'Faça login antes de ativar o Push.' };
       const subscribeRes = await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           subscription,
@@ -238,13 +239,15 @@ export const agendaService = {
     uid: string
   ): Promise<{ success: boolean; message: string }> {
     try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error('Sessão Firebase ausente');
       const response = await fetch('/api/notifications/test-push', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
-          userId: uid,
           title: 'Teste RA Elétrica & Automação',
           body: 'Este é um alerta push REAL em tempo real!',
         }),
@@ -272,13 +275,13 @@ export const agendaService = {
     if (shownLocal) {
       return {
         success: true,
-        message: 'Alerta de teste exibido com sucesso neste dispositivo!',
+        message: 'Alerta LOCAL exibido; envio Push pelo servidor ainda não confirmado.',
       };
     }
 
     return {
-      success: true,
-      message: 'Simulação concluída! Lembrete de visita técnica verificado na Agenda.',
+      success: false,
+      message: 'Não foi possível confirmar o envio de Push neste dispositivo.',
     };
   },
 };

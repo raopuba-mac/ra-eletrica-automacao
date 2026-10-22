@@ -1,60 +1,45 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { notificationService } from '../services/notification.service.js';
-import { config } from '../config/index.js';
+import { authenticateFirebaseUser, AuthenticatedRequest } from '../middleware/authMiddleware.js';
 
 const router = Router();
+const testLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  standardHeaders: 'draft-6',
+  legacyHeaders: false,
+});
 
-router.get('/notifications/vapid-public-key', (_req: Request, res: Response) => {
+router.get('/notifications/vapid-public-key', (_req, res) => {
   res.json({ publicKey: notificationService.getVapidPublicKey() });
 });
 
-router.post('/notifications/subscribe', async (req: Request, res: Response) => {
+router.post('/notifications/subscribe', authenticateFirebaseUser, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { subscription, userId } = req.body;
-    if (!subscription || !userId) {
-      return res.status(400).json({ error: 'subscription e userId são obrigatórios' });
-    }
-
-    await notificationService.registerSubscription(userId, subscription);
-    res.json({ success: true });
-  } catch (error: any) {
-    if (error.message === 'AUTH_METHOD_DISABLED') {
-      return res.status(403).json({
-        error: 'AUTH_METHOD_DISABLED',
-        message: `O provedor de autenticação "E-mail/Senha" está desativado no Firebase. Ative-o em https://console.firebase.google.com/project/${config.firebase.projectId}/authentication/providers para registrar inscrições push.`,
-      });
-    }
-    if (error.message === 'INVALID_SUBSCRIPTION') {
-      return res.status(400).json({ error: 'Endpoint da inscrição inválido' });
-    }
-
-    console.error('[Notification Route] Erro ao registrar inscrição:', error);
-    res.status(500).json({ error: error.message });
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: 'UNAUTHORIZED' });
+    await notificationService.registerSubscription(uid, req.body?.subscription);
+    return res.json({ success: true });
+  } catch (err: any) {
+    if (err?.message === 'INVALID_SUBSCRIPTION') return res.status(400).json({ error: 'INVALID_SUBSCRIPTION' });
+    console.error('[Push Subscribe]', err?.code || err?.message);
+    return res.status(503).json({ error: 'PUSH_REGISTRATION_UNAVAILABLE' });
   }
 });
 
-router.post('/notifications/test-push', async (req: Request, res: Response) => {
+router.post('/notifications/test-push', authenticateFirebaseUser, testLimiter, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId, title, body } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: 'userId é obrigatório' });
-    }
-
-    const sentCount = await notificationService.sendTestPush(userId, title, body);
-    res.json({ success: true, sentCount });
-  } catch (error: any) {
-    if (error.message === 'AUTH_METHOD_DISABLED') {
-      return res.status(403).json({
-        error: 'AUTH_METHOD_DISABLED',
-        message: `O provedor de autenticação "E-mail/Senha" está desativado no Firebase. Ative-o em https://console.firebase.google.com/project/${config.firebase.projectId}/authentication/providers para enviar notificações push.`,
-      });
-    }
-    if (error.message === 'NO_SUBSCRIPTIONS_FOUND') {
-      return res.status(404).json({ error: 'Nenhuma inscrição ativa encontrada para este usuário' });
-    }
-
-    console.error('[Notification Route] Erro ao enviar teste:', error);
-    res.status(500).json({ error: error.message });
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: 'UNAUTHORIZED' });
+    // Jamais aceitar o userId fornecido pelo navegador como autorização.
+    const title = typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : undefined;
+    const body = typeof req.body?.body === 'string' ? req.body.body.slice(0, 300) : undefined;
+    const sentCount = await notificationService.sendTestPush(uid, title, body);
+    return res.json({ success: sentCount > 0, sentCount });
+  } catch (err: any) {
+    console.error('[Push Test]', err?.code || err?.message);
+    return res.status(503).json({ error: 'PUSH_TEST_UNAVAILABLE' });
   }
 });
 

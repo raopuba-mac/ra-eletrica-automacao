@@ -96,7 +96,7 @@ export function useAgenda() {
         if (user) {
           const subResult = await agendaService.subscribeToPushNotifications(user.uid);
           setPushStatusMessage({
-            type: 'success',
+            type: subResult.subscribed ? 'success' : 'warning',
             text:
               subResult.message ||
               'Notificações ativadas com sucesso para sua agenda!',

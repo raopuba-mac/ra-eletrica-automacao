@@ -6,7 +6,7 @@ export interface AgendaEvent {
   date: number;
   type: 'service' | 'visit' | 'reminder' | string;
   recurrence: 'none' | 'daily' | 'weekly' | 'monthly' | string;
-  notifyTime: 'none' | 'at_event' | '15_min' | '1_hour' | '24_hours' | string;
+  notifyTime: 'none' | 'at_event' | '5_min' | '15_min' | '1_hour' | '24_hours' | string;
   createdAt?: number;
   updatedAt?: number;
 }

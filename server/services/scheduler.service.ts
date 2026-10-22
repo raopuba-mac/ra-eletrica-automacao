@@ -1,16 +1,11 @@
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  updateDoc,
-  runTransaction,
-} from 'firebase/firestore';
-import { db, ensureAuthenticated, notificationService } from './notification.service.js';
+import { createHash } from 'node:crypto';
+import type { DocumentReference } from 'firebase-admin/firestore';
+import { getServerDb } from './adminFirebase.js';
+import { ensureAuthenticated, notificationService } from './notification.service.js';
+import { getDueReminder } from './reminderSchedule.js';
 
 let intervalId: NodeJS.Timeout | null = null;
-let isProcessing = false;
+let processing = false;
 
 export interface AutomationSummary {
   agendaNotified: number;
@@ -19,361 +14,153 @@ export interface AutomationSummary {
   financialOverdueNotified: number;
 }
 
-async function acquireNotificationLock(
-  userId: string,
-  type: string,
-  originId: string
-): Promise<{ acquired: boolean; eventDocRef: any }> {
-  const eventKey = `${userId}_${type}_${originId}`.replace(/[^a-zA-Z0-9_]/g, '_');
-  const eventDocRef = doc(db, 'notification_events', eventKey);
+function scopedUid(): string | null {
+  if (process.env.VERCEL_ENV !== 'preview') return null;
+  const uid = process.env.PREVIEW_PUSH_TEST_UID;
+  if (!uid || uid.length > 128) throw new Error('PREVIEW_PUSH_TEST_UID_MISSING');
+  return uid;
+}
 
+async function acquireLock(uid: string, type: string, origin: string) {
+  const id = createHash('sha256').update(`${uid}:${type}:${origin}`).digest('hex');
+  const ref = getServerDb().collection('notification_events').doc(id);
   try {
-    const acquired = await runTransaction(db, async (transaction) => {
-      const sfDoc = await transaction.get(eventDocRef);
-      if (sfDoc.exists()) {
-        const data = sfDoc.data();
-        if (data.status === 'sent') {
-          return false;
-        }
-        if (data.status === 'processing') {
-          const processingTimeoutMs = 5 * 60 * 1000;
-          if (Date.now() - (data.reservedAt || 0) < processingTimeoutMs) {
-            return false;
-          }
-        }
-        transaction.update(eventDocRef, {
-          status: 'processing',
-          reservedAt: Date.now(),
-        });
-        return true;
-      }
-
-      transaction.set(eventDocRef, {
-        userId,
-        type,
-        originId,
-        status: 'processing',
-        reservedAt: Date.now(),
-      });
+    const acquired = await getServerDb().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? snap.data() : undefined;
+      if (data?.status === 'sent') return false;
+      if (data?.status === 'processing' && Date.now() - Number(data.reservedAt || 0) < 5 * 60_000) return false;
+      tx.set(ref, { userId: uid, type, originId: origin, status: 'processing', reservedAt: Date.now() }, { merge: true });
       return true;
     });
-
-    return { acquired, eventDocRef };
-  } catch (err) {
-    console.error(`[Notification Lock Error] Key: ${eventKey}:`, err);
-    return { acquired: false, eventDocRef };
+    return { acquired, ref };
+  } catch (error) {
+    console.error('[Push] Falha ao reservar envio:', error);
+    return { acquired: false, ref };
   }
 }
 
-async function releaseOrCompleteLock(eventDocRef: any, success: boolean): Promise<void> {
+async function completeLock(ref: DocumentReference, success: boolean) {
   try {
-    if (success) {
-      await updateDoc(eventDocRef, {
-        status: 'sent',
-        sentAt: Date.now(),
-      });
-    } else {
-      await updateDoc(eventDocRef, {
-        status: 'failed',
-        failedAt: Date.now(),
-      });
-    }
+    await ref.set({ status: success ? 'sent' : 'failed', ...(success ? { sentAt: Date.now() } : { failedAt: Date.now() }) }, { merge: true });
   } catch (err) {
-    console.error('[Notification Lock Finalize Error]:', err);
+    console.error('[Push] Não foi possível concluir reserva:', err);
   }
 }
 
-export async function checkAgendaReminders(): Promise<number> {
-  let count = 0;
+async function sendOnce(uid: string, type: string, origin: string, title: string, body: string, url: string): Promise<boolean> {
+  const { acquired, ref } = await acquireLock(uid, type, origin);
+  if (!acquired) return false;
+  let sent = false;
+  try {
+    const count = await notificationService.sendPushToUser(uid, { title, body, data: { url } });
+    sent = count > 0;
+    return sent;
+  } catch (err) {
+    console.error('[Push] Falha ao enviar:', err);
+    return false;
+  } finally {
+    await completeLock(ref, sent);
+  }
+}
+
+export async function checkAgendaReminders(uidFilter: string | null = null): Promise<number> {
+  const db = getServerDb();
   const now = Date.now();
-  const agendaRef = collection(db, 'agenda');
-  // Inclui também compromissos antigos sem o campo notified.
-  const querySnapshot = await getDocs(agendaRef);
+  // Reduz leituras no plano Spark: janela de um dia à frente + compromissos recorrentes.
+  const [range, recurring] = await Promise.all([
+    db.collection('agenda').where('date', '>=', now - 20 * 60_000)
+      .where('date', '<=', now + 24 * 60 * 60_000 + 20 * 60_000).get(),
+    db.collection('agenda').where('recurrence', 'in', ['daily', 'weekly', 'monthly']).get(),
+  ]);
+  const unique = new Map<string, typeof range.docs[number]>();
+  for (const doc of [...range.docs, ...recurring.docs]) unique.set(doc.id, doc);
 
-  for (const d of querySnapshot.docs) {
-    const event = { id: d.id, ...d.data() } as any;
-    if (event.notified === true) continue;
-    if (!event.date || !event.userId || event.notifyTime === 'none') continue;
-
-    const diffMs = event.date - now;
-    let shouldNotify = false;
-    let timeLabel = '';
-
-    // Tolerance windows
-    if (event.notifyTime === 'at_event') {
-      if (diffMs <= 60000 && diffMs >= -10 * 60000) {
-        shouldNotify = true;
-        timeLabel = 'está agendado para agora!';
-      }
-    } else if (event.notifyTime === '5_min') {
-      if (diffMs <= 5 * 60000 && diffMs >= -5 * 60000) {
-        shouldNotify = true;
-        timeLabel = 'começa em até 5 minutos.';
-      }
-    } else if (event.notifyTime === '15_min') {
-      if (diffMs <= 16 * 60000 && diffMs >= 5 * 60000) {
-        shouldNotify = true;
-        timeLabel = 'começa em 15 minutos.';
-      }
-    } else if (event.notifyTime === '1_hour') {
-      if (diffMs <= 61 * 60000 && diffMs >= 50 * 60000) {
-        shouldNotify = true;
-        timeLabel = 'começa em 1 hora.';
-      }
-    } else if (event.notifyTime === '24_hours') {
-      if (diffMs <= 24.1 * 60 * 60000 && diffMs >= 1430 * 60000) {
-        shouldNotify = true;
-        timeLabel = 'está agendado para amanhã.';
-      }
-    }
-
-    if (shouldNotify) {
-      console.log(
-        `[Push Scheduler] Enviando lembrete de compromisso: "${event.title}" para o usuário: ${event.userId}`
-      );
-
-      const sent = await notificationService.sendPushToUser(event.userId, {
-        title: `Lembrete de Compromisso: ${event.title}`,
-        body: `O seu agendamento "${event.title}" ${timeLabel}\nDetalhes: ${
-          event.description || 'Sem descrição adicional'
-        }`,
-        data: { url: '/app/agenda' },
-      });
-
-      if (sent > 0) {
-        count++;
-        await updateDoc(doc(db, 'agenda', event.id), {
-          notified: true,
-        });
-      } else {
-        console.warn(
-          `[Push Scheduler] Nenhum dispositivo recebeu o envio para: ${event.title}`
-        );
-      }
-    }
+  let count = 0;
+  for (const doc of unique.values()) {
+    const event = doc.data();
+    const uid = event.userId;
+    if (!uid || (uidFilter && uid !== uidFilter)) continue;
+    const due = getDueReminder(event as any, now);
+    if (!due) continue;
+    const origin = `${doc.id}:${due.occurrenceAt}:${event.notifyTime}`;
+    const body = `O compromisso "${String(event.title || 'Compromisso')}" ${due.label}`;
+    if (await sendOnce(uid, 'agenda', origin, `Compromisso: ${String(event.title || 'Agenda')}`, body, '/app/agenda')) count++;
   }
-
   return count;
 }
 
-export async function checkLeads2h(): Promise<number> {
+export async function checkLeads2h(uidFilter: string | null = null): Promise<number> {
+  const snapshot = await getServerDb().collection('leads').where('status', '==', 'new').get();
   let count = 0;
-  const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
-
-  const leadsRef = collection(db, 'leads');
-  const querySnapshot = await getDocs(
-    query(leadsRef, where('status', '==', 'new'))
-  );
-
-  for (const d of querySnapshot.docs) {
-    const lead = { id: d.id, ...d.data() } as any;
-    if (!lead.userId || !lead.createdAt) continue;
-
-    const createdAtMs = Number(lead.createdAt);
-    if (isNaN(createdAtMs) || createdAtMs > twoHoursAgo) continue;
-
-    const { acquired, eventDocRef } = await acquireNotificationLock(
-      lead.userId,
-      'lead_2h',
-      lead.id
-    );
-
-    if (!acquired) {
-      continue;
-    }
-
-    const leadName = lead.name || 'Novo contato';
-    try {
-      const sent = await notificationService.sendPushToUser(lead.userId, {
-        title: 'Novo Lead Aguardando Atendimento',
-        body: `O lead "${leadName}" foi recebido há mais de 2 horas e aguarda o primeiro contato.`,
-        data: { url: '/app/leads' },
-      });
-
-      if (sent > 0) {
-        count++;
-        await releaseOrCompleteLock(eventDocRef, true);
-      } else {
-        await releaseOrCompleteLock(eventDocRef, false);
-      }
-    } catch (pushErr) {
-      console.error(`[Push Lead Error] ${lead.id}:`, pushErr);
-      await releaseOrCompleteLock(eventDocRef, false);
-    }
+  const cutoff = Date.now() - 2 * 60 * 60_000;
+  for (const doc of snapshot.docs) {
+    const x = doc.data();
+    if (!x.userId || (uidFilter && x.userId !== uidFilter) || !x.createdAt || Number(x.createdAt) > cutoff) continue;
+    if (await sendOnce(x.userId, 'lead_2h', doc.id, 'Novo lead aguardando atendimento',
+      `O lead "${x.name || 'Novo contato'}" aguarda atendimento há mais de 2 horas.`, '/app/leads')) count++;
   }
-
   return count;
 }
 
-export async function checkQuotes48h(): Promise<number> {
+export async function checkQuotes48h(uidFilter: string | null = null): Promise<number> {
+  const snapshot = await getServerDb().collection('quotes').where('status', '==', 'pending').get();
   let count = 0;
-  const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
-
-  const quotesRef = collection(db, 'quotes');
-  const querySnapshot = await getDocs(
-    query(quotesRef, where('status', '==', 'pending'))
-  );
-
-  for (const d of querySnapshot.docs) {
-    const quote = { id: d.id, ...d.data() } as any;
-    if (!quote.userId || !quote.createdAt) continue;
-
-    const createdAtMs = Number(quote.createdAt);
-    if (isNaN(createdAtMs) || createdAtMs > fortyEightHoursAgo) continue;
-
-    const { acquired, eventDocRef } = await acquireNotificationLock(
-      quote.userId,
-      'quote_48h',
-      quote.id
-    );
-
-    if (!acquired) {
-      continue;
-    }
-
-    const clientName = quote.clientName || 'Cliente';
-    try {
-      const sent = await notificationService.sendPushToUser(quote.userId, {
-        title: 'Orçamento Pendente — Follow-up',
-        body: `Há um orçamento para "${clientName}" aguardando follow-up há mais de 48 horas.`,
-        data: { url: '/app/quotes' },
-      });
-
-      if (sent > 0) {
-        count++;
-        await releaseOrCompleteLock(eventDocRef, true);
-      } else {
-        await releaseOrCompleteLock(eventDocRef, false);
-      }
-    } catch (pushErr) {
-      console.error(`[Push Quote Error] ${quote.id}:`, pushErr);
-      await releaseOrCompleteLock(eventDocRef, false);
-    }
+  const cutoff = Date.now() - 48 * 60 * 60_000;
+  for (const doc of snapshot.docs) {
+    const x = doc.data();
+    if (!x.userId || (uidFilter && x.userId !== uidFilter) || !x.createdAt || Number(x.createdAt) > cutoff) continue;
+    if (await sendOnce(x.userId, 'quote_48h', doc.id, 'Orçamento aguardando follow-up',
+      `O orçamento de "${x.clientName || 'Cliente'}" aguarda retorno há mais de 48 horas.`, '/app/quotes')) count++;
   }
-
   return count;
 }
 
-export async function checkFinancialOverdue(): Promise<number> {
+export async function checkFinancialOverdue(uidFilter: string | null = null): Promise<number> {
+  const snapshot = await getServerDb().collection('financial_transactions').where('status', '==', 'pending').get();
   let count = 0;
-  const todayStartMs = new Date().setHours(0, 0, 0, 0);
-
-  const finRef = collection(db, 'financial_transactions');
-  const querySnapshot = await getDocs(
-    query(finRef, where('status', '==', 'pending'))
-  );
-
-  for (const d of querySnapshot.docs) {
-    const tx = { id: d.id, ...d.data() } as any;
-    if (!tx.userId || !tx.dueDate) continue;
-
-    const dueDateMs = Number(tx.dueDate);
-    if (isNaN(dueDateMs) || dueDateMs >= todayStartMs) continue;
-
-    const { acquired, eventDocRef } = await acquireNotificationLock(
-      tx.userId,
-      'financial_overdue',
-      tx.id
-    );
-
-    if (!acquired) {
-      continue;
-    }
-
-    const desc = tx.description || 'Lançamento pendente';
-    const clientText = tx.clientName ? ` (${tx.clientName})` : '';
-
-    try {
-      const sent = await notificationService.sendPushToUser(tx.userId, {
-        title: 'Conta a Receber Vencida',
-        body: `O lançamento "${desc}"${clientText} está com a data de vencimento ultrapassada.`,
-        data: { url: '/app/financial' },
-      });
-
-      if (sent > 0) {
-        count++;
-        await releaseOrCompleteLock(eventDocRef, true);
-      } else {
-        await releaseOrCompleteLock(eventDocRef, false);
-      }
-    } catch (pushErr) {
-      console.error(`[Push Financial Error] ${tx.id}:`, pushErr);
-      await releaseOrCompleteLock(eventDocRef, false);
-    }
+  const todayStart = new Date().setHours(0, 0, 0, 0);
+  for (const doc of snapshot.docs) {
+    const x = doc.data();
+    if (!x.userId || (uidFilter && x.userId !== uidFilter) || !x.dueDate || Number(x.dueDate) >= todayStart) continue;
+    if (await sendOnce(x.userId, 'financial_overdue', doc.id, 'Conta a receber vencida',
+      `O lançamento "${x.description || 'Recebimento'}" está vencido.`, '/app/financial')) count++;
   }
-
   return count;
 }
 
 export async function runAllAutomations(): Promise<AutomationSummary> {
+  const uid = scopedUid(); // Preview sem UID autorizado NUNCA dispara alertas.
+  if (!await ensureAuthenticated()) throw new Error('FIREBASE_ADMIN_UNAVAILABLE');
   const summary: AutomationSummary = {
-    agendaNotified: 0,
-    leadsNotified: 0,
-    quotesNotified: 0,
-    financialOverdueNotified: 0,
+    agendaNotified: 0, leadsNotified: 0, quotesNotified: 0, financialOverdueNotified: 0,
   };
-
-  const authenticated = await ensureAuthenticated();
-  if (!authenticated) {
-    console.warn('[Push Scheduler] Autenticação do scheduler inativa ou sem credenciais.');
-    return summary;
+  for (const [name, fn] of [
+    ['agendaNotified', checkAgendaReminders],
+    ['leadsNotified', checkLeads2h],
+    ['quotesNotified', checkQuotes48h],
+    ['financialOverdueNotified', checkFinancialOverdue],
+  ] as const) {
+    try { summary[name] = await fn(uid); }
+    catch (error) { console.error(`[Push Scheduler] Falha em ${name}:`, error); }
   }
-
-  console.log('[Push Scheduler] Verificando automações RA ERP 5.0...');
-
-  try {
-    summary.agendaNotified = await checkAgendaReminders();
-  } catch (err) {
-    console.error('[Push Scheduler] Erro ao verificar agenda:', err);
-  }
-
-  try {
-    summary.leadsNotified = await checkLeads2h();
-  } catch (err) {
-    console.error('[Push Scheduler] Erro ao verificar leads 2h:', err);
-  }
-
-  try {
-    summary.quotesNotified = await checkQuotes48h();
-  } catch (err) {
-    console.error('[Push Scheduler] Erro ao verificar orçamentos 48h:', err);
-  }
-
-  try {
-    summary.financialOverdueNotified = await checkFinancialOverdue();
-  } catch (err) {
-    console.error('[Push Scheduler] Erro ao verificar financeiro vencido:', err);
-  }
-
   return summary;
 }
 
 export async function checkAndSendNotifications(): Promise<void> {
-  if (isProcessing) return;
-  isProcessing = true;
-
-  try {
-    await runAllAutomations();
-  } catch (error) {
-    console.error('[Push Scheduler] Erro na verificação em segundo plano:', error);
-  } finally {
-    isProcessing = false;
-  }
+  if (processing) return;
+  processing = true;
+  try { await runAllAutomations(); }
+  catch (error) { console.error('[Push Scheduler]', error); }
+  finally { processing = false; }
 }
 
-export function startScheduler(intervalMs: number = 30000): void {
-  if (intervalId) {
-    console.log('[Push Scheduler] Scheduler já está rodando.');
-    return;
-  }
-  console.log('[Push Server] Iniciando scheduler em segundo plano...');
+export function startScheduler(intervalMs = 30_000): void {
+  if (intervalId) return;
   intervalId = setInterval(checkAndSendNotifications, intervalMs);
 }
 
 export function stopScheduler(): void {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-    console.log('[Push Scheduler] Scheduler parado.');
-  }
+  if (intervalId) clearInterval(intervalId);
+  intervalId = null;
 }
